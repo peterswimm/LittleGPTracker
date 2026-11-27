@@ -23,8 +23,7 @@ protected:
     void toggleSolo();
     void unMuteAll();
 
-private:
-	const char *song_ ;
+  private:
     int soloChannel_;
     int mixerRow_; // 0=bus, 1=volume, 2=hpf, 3=lpf
 

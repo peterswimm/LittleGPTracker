@@ -102,16 +102,15 @@ bool ControlRoom::LoadMapping(const char *mappingFile) {
 
 	if (node) {
 		TiXmlElement *element = node->ToElement();
-		while (element) {
-			const char *elem=element->Value() ; // sould be mapping but we don't really care
-			const char *src=element->Attribute("src") ;
+        while (element) {
+            const char *src=element->Attribute("src") ;
 			const char *dst=element->Attribute("dst") ;
 			if ((src)&&(dst)) {
 				Attach(dst,src) ;
 			}
-			element = element->NextSiblingElement(); 
-		}
-	}
+            element = element->NextSiblingElement();
+        }
+    }
 
 	return true ;
 } ;

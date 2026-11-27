@@ -357,16 +357,15 @@ int SamplePool::loadSoundFont(const char *path) {
     SFPRESETHDRPTR pHeaders=sfGetPresetHdrs(id,&presetCount); 
 
 	for (int i=0;i<presetCount;i++) {
-		if (count_<MAX_PIG_SAMPLES) {
-			sfPresetHdr current=pHeaders[i] ;
-			wav_[count_]=new SoundFontPreset(id,i) ;
+        if (count_ < MAX_PIG_SAMPLES) {
+            wav_[count_]=new SoundFontPreset(id,i) ;
 			const char *name=pHeaders[i].achPresetName ;
             Trace::Log("loadSoundFont", "%s", name);
             names_[count_] = (char *)SYS_MALLOC(strlen(name) + 1);
             strcpy(names_[count_], name);
             count_++;
-		}
-	}
+        }
+    }
     /*
         // Get Sample information
 

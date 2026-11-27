@@ -224,7 +224,6 @@ void AppWindow::Flush() {
     SysMutexLocker locker(drawMutex_);
 
     Lock();
-    long flushStart = System::GetInstance()->GetClock();
 
     GUITextProperties props;
     GUIPoint pos;
@@ -232,8 +231,6 @@ void AppWindow::Flush() {
     ColorDefinition color = (ColorDefinition)-1;
     pos._x = 0;
     pos._y = 0;
-
-    int count = 0;
 
     unsigned char *current = _charScreen;
     unsigned char *previous = _preScreen;
@@ -300,7 +297,6 @@ void AppWindow::Flush() {
                     GUIWindow::SetColor(gcolor);
                 }
                 GUIWindow::DrawChar(*current, pos, props);
-                count++;
 #ifndef _LGPT_NO_SCREEN_CACHE_
             }
 #endif
@@ -313,7 +309,6 @@ void AppWindow::Flush() {
         pos._y += AppWindow::charHeight_;
         pos._x = 0;
     }
-    long flushEnd = System::GetInstance()->GetClock();
     GUIWindow::Flush();
     Unlock();
     memcpy(_preScreen, _charScreen, 1200);

@@ -290,8 +290,7 @@ void ProjectView::Update(Observable &,I_ObservableData *data) {
 		focus->SetFocus() ;
 	} else {
 		focus=tempoField_ ;
-	}
-    Player *player = Player::GetInstance();
+    }
     switch (fourcc) {
 		case ACTION_PURGE:
 			project_->Purge() ;

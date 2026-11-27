@@ -416,7 +416,6 @@ void PhraseView::warpToNeighbour(int offset) {
         viewData_->songX_ = newPos;
         unsigned char *c = viewData_->GetCurrentSongPointer();
         // is there a chain ?
-        unsigned char oldChain = viewData_->currentChain_;
         if (*c != 0xFF) {
             // go to chain
             viewData_->currentChain_ = *c;

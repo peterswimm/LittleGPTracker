@@ -41,9 +41,8 @@ void FontConfig(){
 					TiXmlNode *node = rootelement->FirstChildElement() ;
 					if (node) {
 						TiXmlElement *element = node->ToElement();
-						while (element) {
-							const char *elem=element->Value() ; // sould be DATA but we don't really care
-							const char *font_data=element->Attribute("value") ;
+                        while (element) {
+                            const char *font_data=element->Attribute("value") ;
 							if (font_data) {
 								int i = 0, j = 0;
 								while (font_data[i] != '\0') {
@@ -56,8 +55,8 @@ void FontConfig(){
 								}
 							}
 							element = element->NextSiblingElement();
-						}
-					}
+                        }
+                    }
 				}
 			}
 		}
