@@ -958,25 +958,26 @@ sfVersion *ver;
 
        if( tRIFF.FindCk(tRIFF.GetRIFFToken(curToken)) == SUCCESS ) {
 
-	 infoCkValues[curToken ] = new CHAR[ tRIFF.GetCkSize() + 1];
+           infoCkValues[curToken] =
+               new CHAR[tRIFF.GetCkSize() + sizeof(sfVersion)];
 
-	 if (infoCkValues[curToken] == NULL)
-	 {
-	   SetError(EHC_ALLOCATE_PMEM_ERROR);
-	   //resetInfoCkValues();
-	   return EHC_ALLOCATE_PMEM_ERROR;
-	 }
+           if (infoCkValues[curToken] == NULL) {
+               SetError(EHC_ALLOCATE_PMEM_ERROR);
+               // resetInfoCkValues();
+               return EHC_ALLOCATE_PMEM_ERROR;
+           }
 
-	 memset(infoCkValues[curToken], 0, (size_t)(tRIFF.GetCkSize() +1));
+           memset(infoCkValues[curToken], 0,
+                  (size_t)(tRIFF.GetCkSize() + sizeof(sfVersion)));
 
-	 stat = tRIFF.RIFFRead(infoCkValues[curToken], 
-			       1, (size_t) tRIFF.GetCkSize());
+           stat = tRIFF.RIFFRead(infoCkValues[curToken], 1,
+                                 (size_t)tRIFF.GetCkSize());
 
-	 if ( (curToken == Ifil) || ( curToken == Iver )) { /*its a struct...*/
+           if ((curToken == Ifil) || (curToken == Iver)) { /*its a struct...*/
 
-	   ver = (sfVersion*)infoCkValues[curToken];
-	   tRIFF.SwapBytes(&ver->wMajor);
-	   tRIFF.SwapBytes(&ver->wMinor);
+               ver = (sfVersion *)infoCkValues[curToken];
+               tRIFF.SwapBytes(&ver->wMajor);
+               tRIFF.SwapBytes(&ver->wMinor);
 	
 	  #ifdef DEBUG
   	    cout <<"%StoreInfoCks-I-saw token "<< 
@@ -984,26 +985,27 @@ sfVersion *ver;
 	       <<" and stored the value  "
 	       << ver->wMajor<< "."<< ver->wMinor << endl;
 	  #endif
-	 }
-	 else { /* its just a string... */ 
+           } else { /* its just a string... */
 
-	 #ifdef DEBUG
-	   cout<<"%StoreInfoCks-I-saw token "<<tRIFF.GetRIFFToken(curToken)
-	      <<" and stored the value "<< infoCkValues[curToken] << endl;
-	 #endif
-	}       
+#ifdef DEBUG
+               cout << "%StoreInfoCks-I-saw token "
+                    << tRIFF.GetRIFFToken(curToken) << " and stored the value "
+                    << infoCkValues[curToken] << endl;
+#endif
+           }
      }//
      else { // we didn't find the current chunk, but wait! is it the ifil?
-       if(curToken == Ifil) { // check if the uppercase equiv it present...
-         if( tRIFF.FindCk("IFIL") == SUCCESS ) {
-  	   infoCkValues[curToken ] = new CHAR[ tRIFF.GetCkSize() + 1];
-  	   stat = tRIFF.RIFFRead(infoCkValues[curToken], 
-			         1, (SHORT) tRIFF.GetCkSize());
-	   ver = (sfVersion*)infoCkValues[curToken];
-	   tRIFF.SwapBytes(&ver->wMajor);
-	   tRIFF.SwapBytes(&ver->wMinor);
+         if (curToken == Ifil) { // check if the uppercase equiv it present...
+             if (tRIFF.FindCk("IFIL") == SUCCESS) {
+                 infoCkValues[curToken] =
+                     new CHAR[tRIFF.GetCkSize() + sizeof(sfVersion)];
+                 stat = tRIFF.RIFFRead(infoCkValues[curToken], 1,
+                                       (SHORT)tRIFF.GetCkSize());
+                 ver = (sfVersion *)infoCkValues[curToken];
+                 tRIFF.SwapBytes(&ver->wMajor);
+                 tRIFF.SwapBytes(&ver->wMinor);
+             }
          }
-       }
      }//end else
 
    }// end for all chunks

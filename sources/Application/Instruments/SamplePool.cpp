@@ -213,10 +213,17 @@ int SamplePool::ImportSample(Path &path) {
     // copy file to current project
 
     char buffer[IMPORT_CHUNK_SIZE];
+    int status = SLOAD_OK;
     while (size>0) {
 		int count=(size>IMPORT_CHUNK_SIZE)?IMPORT_CHUNK_SIZE:size ;
-		fin->Read(buffer,1,count) ;
-		fout->Write(buffer,1,count) ;
+        if (fin->Read(buffer, 1, count) != count) {
+            status = SLOAD_ERR_INPUT_FILE;
+            break;
+        }
+        if (fout->Write(buffer, 1, count) != count) {
+            status = SLOAD_ERR_OUTPUT_FILE;
+            break;
+        }
 		size-=count ;
 	} ;
 
@@ -226,16 +233,23 @@ int SamplePool::ImportSample(Path &path) {
 	delete(fout) ;
 
     // now load the sample
-    int status = dstPath.Matches("*.wav")
+    if (status == SLOAD_OK) {
+        status = dstPath.Matches("*.wav")
                      ? loadSample(dstPath.GetPath().c_str())
                      : loadSoundFont(dstPath.GetPath().c_str());
+    }
+    if (status != SLOAD_OK) {
+        // nothing was added: don't keep a copy that can't be loaded
+        FileSystem::GetInstance()->Delete(dstPath.GetPath().c_str());
+        return -status;
+    }
 
     SetChanged();
     SamplePoolEvent ev ;
 	ev.index_=count_-1 ;
 	ev.type_=SPET_INSERT ;
     NotifyObservers(&ev);
-    return !status ?(count_-1):(-status) ;
+    return count_ - 1;
 };
 
 bool SamplePool::IsImported(std::string name) {
@@ -256,14 +270,15 @@ int SamplePool::Reassign(std::string name, bool imported) {
     if (count_ == MAX_PIG_SAMPLES)
         return -1;
     int insertedIndex = getIndexOf(name.c_str());
-    if (imported)
+    // the file can exist without being in the pool (e.g. it failed to load)
+    if (imported && insertedIndex >= 0)
         unload(insertedIndex);
 
     std::string aliasPath = "samples:";
     aliasPath += name;
     Path dstPath(aliasPath.c_str());
 
-    if (loadSample(dstPath.GetCanonicalPath().c_str())) {
+    if (loadSample(dstPath.GetCanonicalPath().c_str()) == SLOAD_OK) {
         SetChanged();
         SamplePoolEvent ev;
         ev.index_ = getIndexOf(name.c_str());;
@@ -283,8 +298,8 @@ void SamplePool::PurgeSample(int i) {
 	Path path(wavPath.c_str()) ;
 	//delete wav
 	SAFE_DELETE(wav_[i]) ;
-	// delete name entry
-	SAFE_DELETE(names_[i]) ;
+    // delete name entry (allocated with SYS_MALLOC)
+    SAFE_FREE(names_[i]);
 
 	// delete file
 	FileSystem::GetInstance()->Delete(path.GetPath().c_str()) ;
