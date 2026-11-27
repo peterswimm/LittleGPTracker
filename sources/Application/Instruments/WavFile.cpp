@@ -50,6 +50,7 @@ WavFile::WavFile(I_File *file) {
 	readBufferSize_=0 ;
 	sampleBufferSize_=0 ;
 	file_=file ;
+    readFailed_ = false;
 } ;
 
 WavFile::~WavFile() {
@@ -71,6 +72,9 @@ WavFile *WavFile::Open(const char *path) {
 	if (!file) return 0 ;
 
 	WavFile *wav=new WavFile(file) ;
+
+    file->Seek(0, SEEK_END);
+    long fileSize = file->Tell();
 
         
         // Get data
@@ -199,7 +203,12 @@ WavFile *WavFile::Open(const char *path) {
 		delete wav ;
 		return 0 ;
 	} ;
-	bitPerSample/=8 ;
+    if (nChannels == 0) {
+        Trace::Error("Bad channel count");
+        delete wav;
+        return 0;
+    }
+    bitPerSample/=8 ;
 	wav->bytePerSample_=bitPerSample ;
 
 	// some bad files have bigger chunks
@@ -217,12 +226,21 @@ WavFile *WavFile::Open(const char *path) {
 	
 
 	while (chunk!=0x61746164) {
+        // stop at the end of the file instead of reading it forever
+        if (wav->readFailed_ || position >= fileSize) {
+            Trace::Error("No data chunk");
+            delete wav;
+            return 0;
+        }
 		position+=wav->readBlock(position,4) ;
 		memcpy(&size,wav->readBuffer_,4) ;
 		size = Swap32(size);
+        if (size > (unsigned long)(fileSize - position)) {
+            size = fileSize - position; // the next read fails and ends this
+        }
 
-		position+=size ;
-		position+=wav->readBlock(position,4) ;
+        position += size;
+        position+=wav->readBlock(position,4) ;
 		memcpy(&chunk,wav->readBuffer_,4) ;
 		chunk = Swap32(chunk);
 	}
@@ -235,6 +253,20 @@ WavFile *WavFile::Open(const char *path) {
 	position+=wav->readBlock(position,4) ;
 	memcpy(&size,wav->readBuffer_,4) ;
 	size = Swap32(size);
+
+    if (wav->readFailed_) {
+        Trace::Error("Truncated WAV header");
+        delete wav;
+        return 0;
+    }
+
+    // a data size past the end of the file: keep what is there
+    long available = fileSize - position;
+    if (available < 0)
+        available = 0;
+    if (size > (unsigned long)available) {
+        size = available;
+    }
 
 	wav->size_=size/nChannels/bitPerSample ; // Size in samples (stereo/16bits)
 
@@ -272,7 +304,10 @@ long WavFile::readBlock(long start,long size) {
   else 
   {
   	file_->Seek(start,SEEK_SET) ;
-    file_->Read(readBuffer_,size,1) ;
+    if (file_->Read(readBuffer_, size, 1) != 1) {
+        memset(readBuffer_, 0, size);
+        readFailed_ = true;
+    }
   }
 	return size ;
 } ;
@@ -283,22 +318,26 @@ bool WavFile::GetBuffer(long start,long size) {
 	// compute the sample buffer size we need,
 	// allocate if needed
 
-	int sampleBufferSize=2*channelCount_*size ;
+    if (start < 0 || size < 0 || size > 0x7FFFFFFF / (2 * channelCount_)) {
+        Trace::Error("Bad sample range %ld+%ld", start, size);
+        return false;
+    }
+    int sampleBufferSize=2*channelCount_*size ;
 	if (sampleBufferSize>sampleBufferSize_) {
 		SAFE_FREE(samples_) ;
 		samples_=(short *)SYS_MALLOC(sampleBufferSize) ;
-		sampleBufferSize_=sampleBufferSize ;
-	}
+        sampleBufferSize_ = samples_ ? sampleBufferSize : 0;
+    }
 
-  if (!samples_)
-  {
-    Trace::Error("Failed to allocate %d samples",sampleBufferSize);
-  }
+    if (!samples_ && sampleBufferSize > 0) {
+        Trace::Error("Failed to allocate %d samples", sampleBufferSize);
+        return false;
+    }
 
-	// compute the file buffer size we need to read
+    // compute the file buffer size we need to read
 
-	int bufferSize=size*channelCount_*bytePerSample_ ;
-	int bufferStart=dataPosition_+start*channelCount_*bytePerSample_ ;
+    int bufferSize = size * channelCount_ * bytePerSample_;
+    int bufferStart=dataPosition_+start*channelCount_*bytePerSample_ ;
 
 	// Read the buffer but in small chunk to let the system breathe
 	// if the files are big
@@ -320,13 +359,18 @@ bool WavFile::GetBuffer(long start,long size) {
 		offset+=readSize ;
 		if (bufferChunkSize_>0) TimeService::GetInstance()->Sleep(1) ;
 	}
-
+    if (readFailed_) {
+        Trace::Error("Failed to read sample data");
+        return false;
+    }
 
         // expand 8 bit data if needed
 
 	unsigned char *src=(unsigned char *)samples_ ;
 	short *dst=samples_ ;
-	for (int i=size-1;i>=0;i--) {
+    // 8 bit data has one byte per channel; 16 bit swaps a frame per step
+    int count8 = (bytePerSample_ == 1) ? size * channelCount_ : size;
+    for (int i = count8 - 1; i >= 0; i--) {
 		if (bytePerSample_==1) {
 			dst[i]=(src[i]-128)*256 ;
 		} else {
