@@ -31,6 +31,10 @@ class AppWindow : public GUIWindow, I_Observer, Status {
     void SaveLastProject(const Path &p);
     void CloseProject();
 
+    // keep the GUIWindow overloads visible next to the ones below
+    using GUIWindow::Clear;
+    using GUIWindow::SetColor;
+    using GUIWindow::Update;
     virtual void Clear(bool all = false);
     virtual void ClearRect(GUIRect &rect);
     virtual void SetColor(ColorDefinition cd);

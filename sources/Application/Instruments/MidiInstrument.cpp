@@ -162,9 +162,9 @@ void MidiInstrument::ProcessCommand(int channel, FourCC cc, ushort value) {
     // Do not process commands if muted.
     if (muted_[channel])
         return;
-  
-	Variable *v=FindVariable(MIP_CHANNEL) ;
-	int mchannel=v->GetInt() ;
+
+    Variable *v=FindVariable(MIP_CHANNEL) ;
+    int mchannel=v->GetInt() ;
 
 	switch(cc) {
 

@@ -10,7 +10,8 @@
 #define FIXED_SHIFT		15
 #define FIXED_SCALE		(1 << FIXED_SHIFT)
 
-#define i2fp(a)			((a) << FIXED_SHIFT)
+// multiply rather than shift: same value, and defined for negative a
+#define i2fp(a) ((a) * (1 << FIXED_SHIFT))
 #define fp2i(a)			((a) >> FIXED_SHIFT)
 
 #define fp_add(a, b)	((a) + (b))

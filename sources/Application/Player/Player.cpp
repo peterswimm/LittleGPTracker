@@ -1108,6 +1108,7 @@ void Player::moveToNextChain(int channel, int hop) {
             return;
 
         case QM_NONE:
+        case QM_TICKSTART: // handled at tick level, not when the step ends
             break;
         }
     }

@@ -10,7 +10,8 @@ public:
 	FieldView(GUIWindow &w,ViewData *viewData) ;
 
 	virtual void Redraw() ;
-	virtual void ProcessButtonMask(unsigned short mask) ;
+    using View::ProcessButtonMask;
+    virtual void ProcessButtonMask(unsigned short mask) ;
 
 	void SetFocus(UIField *) ;
 	UIField *GetFocus() ;

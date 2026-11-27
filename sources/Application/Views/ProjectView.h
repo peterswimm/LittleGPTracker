@@ -11,7 +11,8 @@ public:
 	ProjectView(GUIWindow &w,ViewData *data) ;
 	virtual ~ProjectView() ;
 
-	virtual void ProcessButtonMask(unsigned short mask,bool pressed) ;
+    using FieldView::ProcessButtonMask;
+    virtual void ProcessButtonMask(unsigned short mask,bool pressed) ;
 	virtual void DrawView() ;
 	virtual void OnPlayerUpdate(PlayerEventType,unsigned int) {} ;
 	virtual void OnFocus() {} ;

@@ -406,15 +406,20 @@ void AppWindow::LoadProject(const Path &p) {
 
     // Report on sample & SoundFont load fails
     if (load_result) {
-      const char *err_str = (load_result == SLOAD_ERR_MAX_SAMPLES) ? "Maximum number of samples exceeded"
-	: (load_result == SLOAD_ERR_MAX_SOUNDFONTS) ? "Maximum number of SoundFonts exceeded"
-	: (load_result == SLOAD_ERR_MAX_SAMPLES | SLOAD_ERR_MAX_SOUNDFONTS) ? "Maximum number of samples and SoundFonts exceeded"	
-	: (load_result == SLOAD_ERR_INVALID_DIR) ? "Sample directory could not be opened"
-	: "Unknown error loading sample pool";
-      Trace::Error(err_str) ;
-      MessageBox *mb =
-            new MessageBox(*_currentView, err_str);	  
-    _currentView->DoModal(mb);
+        const char *err_str =
+            (load_result == SLOAD_ERR_MAX_SAMPLES)
+                ? "Maximum number of samples exceeded"
+            : (load_result == SLOAD_ERR_MAX_SOUNDFONTS)
+                ? "Maximum number of SoundFonts exceeded"
+            : (load_result ==
+               (SLOAD_ERR_MAX_SAMPLES | SLOAD_ERR_MAX_SOUNDFONTS))
+                ? "Maximum number of samples and SoundFonts exceeded"
+            : (load_result == SLOAD_ERR_INVALID_DIR)
+                ? "Sample directory could not be opened"
+                : "Unknown error loading sample pool";
+        Trace::Error(err_str);
+        MessageBox *mb = new MessageBox(*_currentView, err_str);
+        _currentView->DoModal(mb);
     }
     
     Redraw();
@@ -637,6 +642,8 @@ void AppWindow::Update(Observable &o, I_ObservableData *d) {
     }
     case VET_QUIT_APP:
         _shouldQuit = true;
+        break;
+    default: // VET_LIST_SELECT, VET_UPDATE: nothing to do here
         break;
     }
 }

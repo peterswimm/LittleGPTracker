@@ -9,7 +9,8 @@ public:
 
 	UIIntField(GUIPoint &position,int *src,const char *format,int min,int max,int xOffset,int yOffset) ;
 	virtual ~UIIntField() {} ;
-	virtual void Draw(GUIWindow &w) ;
+    // matches UIField::Draw so this overrides it instead of hiding it
+    virtual void Draw(GUIWindow &w, int offset = 0);
 	virtual void ProcessArrow(unsigned short mask) ;
 	virtual void OnClick() {} ;
 protected:

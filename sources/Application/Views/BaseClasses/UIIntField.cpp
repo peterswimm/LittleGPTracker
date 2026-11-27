@@ -15,10 +15,10 @@ UIIntField::UIIntField(GUIPoint &position,int *src,const char *format,int min,in
 	yOffset_=yOffset ;
 } ;
 
-void UIIntField::Draw(GUIWindow &w) {
+void UIIntField::Draw(GUIWindow &w, int offset) {
 
-	GUITextProperties props ;
-	GUIPoint position=GetPosition() ;
+    GUITextProperties props;
+    GUIPoint position=GetPosition() ;
 	
 	if (focus_) {
 		((AppWindow&)w).SetColor(CD_HILITE2) ;
@@ -31,9 +31,7 @@ void UIIntField::Draw(GUIWindow &w) {
 	int value=*src_ ;
 	sprintf(buffer,format_,value) ;
 	w.DrawString(buffer,position,props) ;
-	
-	
-} ;
+};
 
 void UIIntField::ProcessArrow(unsigned short mask){
 
