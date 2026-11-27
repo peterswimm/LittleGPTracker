@@ -85,9 +85,15 @@ void ChainView::warpInColumn(int offset) {
     int saveY = viewData_->songY_;
     int saveOffset = viewData_->songOffset_;
 
-    // Jumping more than the rows displayed on screen causes infinite loop
-    while (viewData_->songY_ >= 0 && viewData_->songY_ < 21) {
+    // UpdateSongCursor clamps at the first and last song row, so stop once
+    // the cursor no longer moves instead of testing songY_ for a value it
+    // can never reach
+    while (true) {
+        int before = viewData_->songOffset_ + viewData_->songY_;
         viewData_->UpdateSongCursor(0, offset);
+        if (viewData_->songOffset_ + viewData_->songY_ == before) {
+            break;
+        }
         unsigned char *data = viewData_->GetCurrentSongPointer();
         if (*data != 0xFF) {
             viewData_->currentChain_ = *data;

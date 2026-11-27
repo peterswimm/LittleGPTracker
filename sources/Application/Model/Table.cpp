@@ -59,10 +59,10 @@ TableHolder::TableHolder():Persistent("TABLES") {
 }
 
 void TableHolder::Reset()  {
-	for (int i=0;i<SONG_CHANNEL_COUNT;i++) {
-		table_[i].Reset() ;
-	}
-	for (int i=0;i<TABLE_COUNT;i++) {
+    for (int i = 0; i < TABLE_COUNT; i++) {
+        table_[i].Reset();
+    }
+    for (int i=0;i<TABLE_COUNT;i++) {
 		allocation_[i]=false ;
 	} ;
 } ;
