@@ -143,27 +143,41 @@ void JackAudioDriver::ProcessCallback(jack_nframes_t frames) {
 	//			jms->SetFrameOffset(frames-nframes) ;
 	//			jms->Flush() ;
 				if (pool_[poolPlayPosition_].buffer_!=0) {
-					available_=(pool_[poolPlayPosition_].size_)/2/sizeof(short)  ;
-					SYS_MEMCPY(tempBuffer_,pool_[poolPlayPosition_].buffer_,pool_[poolPlayPosition_].size_);
-					SYS_FREE( pool_[poolPlayPosition_].buffer_) ;
-					pool_[poolPlayPosition_].buffer_=0 ;
-					poolPlayPosition_=(poolPlayPosition_+1)%SOUND_BUFFER_COUNT ;
-					current_=tempBuffer_ ;
-				} else {
-					SYS_MEMSET(tempBuffer_,0,nframes*sizeof(short *)*2) ;
-					available_=nframes ;
-					current_=tempBuffer_ ;
-					Trace::Debug("[J]: Underrun detected") ;
-				}
-			}
-			read=(available_>nframes)?nframes:available_ ;
-			dumpBuffer(outL,outR,current_,read) ;
-			available_-=read ;
-			outL+=read ;
-			outR+=read ;
-			nframes-=read ;
-			current_+=read*2 ;
-		}
+                    // tempBuffer_ holds SOUND_BUFFER_MAX bytes
+                    int size = pool_[poolPlayPosition_].size_;
+                    if (size > SOUND_BUFFER_MAX) {
+                        size = SOUND_BUFFER_MAX;
+                    }
+                    available_ = size / 2 / sizeof(short);
+                    SYS_MEMCPY(tempBuffer_, pool_[poolPlayPosition_].buffer_,
+                               size);
+                    SYS_FREE(pool_[poolPlayPosition_].buffer_);
+                    pool_[poolPlayPosition_].buffer_ = 0;
+                    poolPlayPosition_ =
+                        (poolPlayPosition_ + 1) % SOUND_BUFFER_COUNT;
+                    current_ = tempBuffer_;
+                } else {
+                    // Underrun: play silence. A stereo frame is two shorts,
+                    // and a period longer than tempBuffer_ is played in
+                    // several chunks by this loop.
+                    jack_nframes_t silent = nframes;
+                    if (silent > SOUND_BUFFER_MAX / (2 * sizeof(short))) {
+                        silent = SOUND_BUFFER_MAX / (2 * sizeof(short));
+                    }
+                    SYS_MEMSET(tempBuffer_, 0, silent * 2 * sizeof(short));
+                    available_ = silent;
+                    current_ = tempBuffer_;
+                    Trace::Debug("[J]: Underrun detected");
+                }
+            }
+            read = (available_ > nframes) ? nframes : available_;
+            dumpBuffer(outL, outR, current_, read);
+            available_ -= read;
+            outL += read;
+            outR += read;
+            nframes -= read;
+            current_ += read * 2;
+        }
     }
 } ;
 #endif
