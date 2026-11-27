@@ -140,9 +140,8 @@ void View::drawMap() {
 			break;
 		default: //VT_SONG
 			pos._y+=1;
-	        DrawString(pos._x,pos._y,"S",props) ;
-			int foo=0;
-		}
+            DrawString(pos._x, pos._y, "S", props);
+        }
 
 	}//!minilayout
 }

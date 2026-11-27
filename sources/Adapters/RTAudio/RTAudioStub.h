@@ -13,8 +13,7 @@ public:
 	virtual int GetSampleRate()  ;
 private:
 	RtAudio::Api api_ ;
-	std::string selectedDevice_ ;
-	int index_ ; // index of the device to open
-	int sampleRate_ ;
+    std::string selectedDevice_;
+    int sampleRate_ ;
 };
 #endif

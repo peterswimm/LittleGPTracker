@@ -114,10 +114,9 @@ void FieldView::ProcessButtonMask(unsigned short mask) {
 					UIField *next=0 ;
 					UIField *first=0 ;
 
-					GUIPoint focusPos=focus_->GetPosition() ;
-
-					IteratorPtr<UIField> it(T_SimpleList<UIField>::GetIterator()) ;
-					for (it->Begin();!it->IsDone();it->Next()) {
+                    IteratorPtr<UIField> it(
+                        T_SimpleList<UIField>::GetIterator());
+                    for (it->Begin();!it->IsDone();it->Next()) {
 						UIField &current=it->CurrentItem() ;
 						if (!current.IsStatic()) {
 							if (first) {
@@ -196,10 +195,9 @@ void FieldView::ProcessButtonMask(unsigned short mask) {
 					UIField *next=0 ;
 					UIField *first=0 ;
 
-					GUIPoint focusPos=focus_->GetPosition() ;
-
-					IteratorPtr<UIField> it(T_SimpleList<UIField>::GetIterator()) ;
-					for (it->Begin();!it->IsDone();it->Next()) {
+                    IteratorPtr<UIField> it(
+                        T_SimpleList<UIField>::GetIterator());
+                    for (it->Begin();!it->IsDone();it->Next()) {
 						UIField &current=it->CurrentItem() ;
 						if (!current.IsStatic()&&(current.GetPosition()._y==focus_->GetPosition()._y)) {
 							if (first) {

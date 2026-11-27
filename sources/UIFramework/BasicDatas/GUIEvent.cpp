@@ -43,8 +43,8 @@ void GUIEvent::Dump() {
 		   type="unknown" ;
 		   break ;
 	}
-	const char *value ;
-	switch(_value) {
+    const char *value = "unknown";
+    switch(_value) {
 case EPBT_LEFT:
 	value="EPBT_LEFT" ;
 	break;
@@ -76,5 +76,6 @@ case EPBT_SELECT:
 	value="EPBT_SELECT" ;
 	break;
 	}
+    Trace::Log("EVENT", "%s %s", type, value);
 }
 

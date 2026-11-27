@@ -3,8 +3,6 @@
 #include "Services/Time/TimeService.h"
 #include "Services/Audio/AudioDriver.h"
 
-static bool threadon=false ;
-
 DummyOutThread::DummyOutThread(DummyAudioOut *out) {
 	out_=out ;
 } ;

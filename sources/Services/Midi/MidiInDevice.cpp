@@ -131,10 +131,7 @@ void MidiInDevice::treatChannelEvent(MidiMessage &event) {
 
 	int midiChannel = event.status_ & 0x0F;
 
-	bool isMidiClockEvent = (event.status_ == 0xF8);
-
-	switch (event.GetType())
-  {
+    switch (event.GetType()) {
     case MidiMessage::MIDI_NOTE_OFF:
 		{
 			int note=event.data1_&0x7F ;
@@ -241,7 +238,7 @@ void MidiInDevice::treatChannelEvent(MidiMessage &event) {
 			break ;
 		default:
 			break;
-	} ;
+        };
 } ;
 
 Channel *MidiInDevice::GetChannel(const char *sourcePath) {

@@ -79,7 +79,6 @@ class SongView : public View {
     int saveOffset_;
     std::string songname_;
     bool invertBatt_;
-    bool needClear_;
     bool canDeepClone_;
     void nudgeTempo(int direction);
     void DrawVuBars();   // Draw VU bars - called from both DrawView and

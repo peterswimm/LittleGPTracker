@@ -29,7 +29,5 @@ class Audio : public T_Factory<Audio>, public T_SimpleList<AudioOut> {
   private:
     std::string audioAPI_;
     std::string audioDevice_;
-    int audioBufferSize_;
-    int preBufferCount_;
 };
 #endif

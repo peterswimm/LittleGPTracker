@@ -383,8 +383,7 @@ void SampleInstrument::Stop(int channel) {
 
 	// Get Rendering params for current voice & fill init data
 
-	 renderParams *rp=renderParams_+channel ;
-	 running_=false ;
+    running_ = false;
 }
 
 void SampleInstrument::doTickUpdate(int channel) {
