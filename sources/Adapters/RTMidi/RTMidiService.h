@@ -1,6 +1,6 @@
 
 #ifndef _RT_MIDI_SERVICE_H_
-#define _W32_MIDI_SERVICE_H_
+#define _RT_MIDI_SERVICE_H_
 
 #include "Services/Midi/MidiService.h"
 #include "Externals/RtMidi/RtMidi.h"

@@ -11,7 +11,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-short PhraseView::offsets_[2][4] = {-1, 1, 12, -12, -1, 1, 16, -16};
+short PhraseView::offsets_[2][4] = {{-1, 1, 12, -12}, {-1, 1, 16, -16}};
 
 static void CommandSelectorCallback(View &v, ModalView &d) {
     ((PhraseView &)v).onCommandSelectorResult(d);
@@ -278,7 +278,7 @@ void PhraseView::updateCursorValue(ViewUpdateDirection direction, int xOffset,
     if (col_ == 0 || col_ == 1 || col_ == 2 || col_ == 3 || col_ == 4 ||
         col_ == 5) {
         if (player->IsRunning()) {
-            if ((viewData_->playMode_ == PM_AUDITION)) {
+            if (viewData_->playMode_ == PM_AUDITION) {
                 player->Stop();
                 player->OnStartButton(PM_AUDITION, viewData_->songX_, false,
                                       viewData_->chainRow_);
@@ -302,7 +302,7 @@ void PhraseView::pasteLast() {
     switch (col_) {
     case 0:
         c = phrase_->note_ + (16 * viewData_->currentPhrase_ + row_);
-        if ((*c == 0xFF)) {
+        if (*c == 0xFF) {
             *c = lastNote_;
             c = phrase_->instr_ + (16 * viewData_->currentPhrase_ + row_);
             *c = lastInstr_;
@@ -315,7 +315,7 @@ void PhraseView::pasteLast() {
         break;
     case 1:
         c = phrase_->instr_ + (16 * viewData_->currentPhrase_ + row_);
-        if ((*c == 0xFF)) {
+        if (*c == 0xFF) {
             *c = lastInstr_;
             isDirty_ = true;
         } else {

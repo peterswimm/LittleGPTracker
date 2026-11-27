@@ -58,7 +58,9 @@ void InstrumentView::onInstrumentChange() {
 		case IT_SAMPLE:
 			fillSampleParameters() ;
 			break ;
-	} ;
+        case IT_LAST: // not a real instrument type
+            break;
+    } ;
 
 	SetFocus(T_SimpleList<UIField>::GetFirst()) ;
 	IteratorPtr<UIField> it2(T_SimpleList<UIField>::GetIterator()) ;

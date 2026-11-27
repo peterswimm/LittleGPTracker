@@ -13,17 +13,12 @@ int View::songRowCount_; //=21 sets screen height among other things
 bool View::miniLayout_=false ;
 int View::altRowNumber_ = 4;
 
-View::View(GUIWindow &w,ViewData *viewData):
-	w_(w),
-	modalView_(0),
-	modalViewCallback_(0),
-	hasFocus_(false)
-{
-  if (!initPrivate_) 
-  {
-	   GUIRect rect=w.GetRect() ;
-     miniLayout_=(rect.Width()<320);
-	   View::margin_=0 ;
+View::View(GUIWindow &w, ViewData *viewData)
+    : w_(w), hasFocus_(false), modalView_(0), modalViewCallback_(0) {
+    if (!initPrivate_) {
+        GUIRect rect = w.GetRect();
+        miniLayout_ = (rect.Width() < 320);
+        View::margin_ = 0;
 		songRowCount_ = miniLayout_ ? 16:22; // 22 is row display count among other things
 
 		const char *altRowStr = Config::GetInstance()->GetValue("ALTROWNUMBER");
@@ -44,7 +39,7 @@ View::View(GUIWindow &w,ViewData *viewData):
         prevLeftVU_[i] = 0;
         prevRightVU_[i] = 0;
     }
-} ;
+};
 
 GUIPoint View::GetAnchor() {
 	int width=40 ;
@@ -212,14 +207,13 @@ void View::SetDirty(bool isDirty) {
 void View::ProcessButton(unsigned short mask, bool pressed) {
 	isDirty_=false ;
 	if (modalView_) {
-		modalView_->ProcessButton(mask,pressed);
-		modalView_->isDirty_;
-		if (modalView_->IsFinished()) {
+        modalView_->ProcessButton(mask, pressed);
+        if (modalView_->IsFinished()) {
 			// process callback sending the modal dialog
 			if (modalViewCallback_) {
 				modalViewCallback_(*this,*modalView_) ;
-			}
-			SAFE_DELETE(modalView_) ;
+            }
+            SAFE_DELETE(modalView_) ;
 			isDirty_=true ;
 		}
 	} else {

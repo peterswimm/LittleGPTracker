@@ -40,7 +40,7 @@ void ChainView::pasteLastPhrase() {
     // otherwise we take the current phrase as last
 
     unsigned char *c = viewData_->GetCurrentChainPointer();
-    if ((*c == 0xFF)) {
+    if (*c == 0xFF) {
         *c = lastPhrase_;
         isDirty_ = true;
     } else {

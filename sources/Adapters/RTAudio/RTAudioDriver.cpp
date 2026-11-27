@@ -46,7 +46,7 @@ void RTAudioDriverThread::Notify() {
 };
 
 RTAudioDriver::RTAudioDriver(RtAudio::Api api, AudioSettings &settings)
-    : AudioDriver(settings), unalignedMain_(0), miniBlank_(0), audio_(api) {
+    : AudioDriver(settings), audio_(api), unalignedMain_(0), miniBlank_(0) {
     isPlaying_ = false;
     thread_ = 0;
 };
