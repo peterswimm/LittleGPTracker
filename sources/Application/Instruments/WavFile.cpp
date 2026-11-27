@@ -92,7 +92,11 @@ WavFile *WavFile::Open(const char *path) {
 	unsigned int chunk ;
 
 	position+=wav->readBlock(position,4) ;
-	memcpy(&chunk,wav->readBuffer_,4) ;
+    if (!wav->readBuffer_) {
+        delete wav;
+        return 0;
+    }
+    memcpy(&chunk,wav->readBuffer_,4) ;
 	chunk = Swap32(chunk);
 		
 	if (chunk!=0x46464952) {
@@ -203,8 +207,9 @@ WavFile *WavFile::Open(const char *path) {
 		delete wav ;
 		return 0 ;
 	} ;
-    if (nChannels == 0) {
-        Trace::Error("Bad channel count");
+    // playback and preview handle mono and stereo only
+    if (nChannels == 0 || nChannels > 2) {
+        Trace::Error("Only mono/stereo supported");
         delete wav;
         return 0;
     }
@@ -300,6 +305,8 @@ long WavFile::readBlock(long start,long size) {
   if (!readBuffer_)
   {
     Trace::Error("Failed to allocate read buffer of size %d",size);
+    readBufferSize_ = 0; // try again next time
+    readFailed_ = true;
   } 
   else 
   {
@@ -353,6 +360,8 @@ bool WavFile::GetBuffer(long start,long size) {
 	while (count>0) {
 		readSize=(count>readSize)?readSize:count ;
 		readBlock(bufferStart,readSize) ;
+        if (!readBuffer_)
+            break; // readFailed_ is set; reported below
 		memcpy(ptr+offset,readBuffer_,readSize) ;
 		bufferStart+=readSize ;
 		count-=readSize ;

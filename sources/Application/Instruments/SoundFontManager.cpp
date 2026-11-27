@@ -65,7 +65,8 @@ sfBankID SoundFontManager::LoadBank(const char *path) {
 
 	// Loop on every sample, load them and adapt the pointers
 
-	for (int i=0;i<headerCount;i++) {
+    size_t firstBuffer = sampleData_.size();
+    for (int i=0;i<headerCount;i++) {
 
 		sfSampleHdr &current=headers[i] ;
 
@@ -74,12 +75,33 @@ sfBankID SoundFontManager::LoadBank(const char *path) {
 		
 		int byteSize=to-from ;
 
-		void *buffer=malloc(byteSize) ;
+        void *buffer = SYS_MALLOC(byteSize);
+        if (!buffer && byteSize > 0) {
+            // free this bank's samples so far and refuse it
+            while (sampleData_.size() > firstBuffer) {
+                SYS_FREE(sampleData_.back());
+                sampleData_.pop_back();
+            }
+            fin->Close();
+            SAFE_DELETE(fin);
+            sfUnloadSFBank(id);
+            return -SF_LOAD_ERROR;
+        }
 
 		if (buffer) {
 			fin->Seek(from,SEEK_SET) ;
 			fin->Read(buffer,byteSize,1) ;
 		}
+
+        // keep the loop inside the sample, or the offsets below underflow
+        if (current.dwStartloop < current.dwStart ||
+            current.dwStartloop > current.dwEnd) {
+            current.dwStartloop = current.dwStart;
+        }
+        if (current.dwEndloop < current.dwStartloop ||
+            current.dwEndloop > current.dwEnd) {
+            current.dwEndloop = current.dwEnd;
+        }
 
 		// now adapt the headers so the start is the memory point
 		// and all others are sample offset
