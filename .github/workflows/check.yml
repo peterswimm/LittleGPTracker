@@ -2,6 +2,9 @@ name: Check build viability
 
 on: [pull_request]
 
+permissions:
+  contents: read
+
 jobs:
 
   clang-format:
@@ -13,8 +16,11 @@ jobs:
             fetch-depth: 0
 
       - name: Check formatting
+        env:
+            # The branch the PR targets, not always master
+            BASE: origin/${{ github.base_ref }}
         run: |
-            CHANGED_FILES=$(git diff --name-only origin/master...HEAD --diff-filter=ACM | grep -iE '\.(cpp|h|c|hpp)$' || true)
+            CHANGED_FILES=$(git diff --name-only "$BASE"...HEAD --diff-filter=ACM | grep -iE '\.(cpp|h|c|hpp)$' || true)
 
             if [ -z "$CHANGED_FILES" ]; then
                 echo "No C/C++ files changed."
@@ -23,24 +29,26 @@ jobs:
 
             NEEDS_FORMATTING=0
 
-            # Run clang-format on the changed lines of each staged file
-            for FILE in $CHANGED_FILES; do
-                # Get the changed lines in the file
-                CHANGED_LINES=$(git diff -U0 origin/master -- $FILE | grep -E '^@@' | awk '{print $3}' | cut -d',' -f1)
+            # Run clang-format on the changed lines of each changed file
+            while IFS= read -r FILE; do
+                # Every added or changed line range, from hunk headers
+                # "@@ -a,b +START,COUNT @@". COUNT is omitted when it is 1
+                # and is 0 for a pure deletion, which adds no lines to check.
+                RANGES=$(git diff -U0 "$BASE" -- "$FILE" | awk '/^@@/ {
+                    split(substr($3, 2), r, ",")
+                    count = (r[2] == "") ? 1 : r[2]
+                    if (count > 0) print "--lines=" r[1] ":" (r[1] + count - 1)
+                }')
 
-                # Format each changed line in the file
-                for LINE in $CHANGED_LINES; do
-                    LINE_START=$(echo $LINE | cut -d'+' -f2)
-                    if [ -z "$LINE_START" ]; then
-                    continue
-                    fi
-                    clang-format -i --lines=$LINE_START:$LINE_START $FILE
-                done
+                if [ -n "$RANGES" ]; then
+                    # One clang-format run with every range of the file
+                    clang-format -i $RANGES "$FILE"
+                fi
 
-                if ! git diff --quiet $FILE; then
+                if ! git diff --quiet -- "$FILE"; then
                     NEEDS_FORMATTING=1
                 fi
-            done
+            done <<< "$CHANGED_FILES"
             if [ $NEEDS_FORMATTING -eq 1 ]; then
                 git diff
                 echo "Some files need formatting. Please review the diff."
@@ -73,8 +81,8 @@ jobs:
         shell: bash
         working-directory: projects
         run: |
-          TAG=$(curl "https://api.github.com/repos/djdiskmachine/lgpt-resources/tags" | jq -r '.[0].name')
-          curl -L -o lgpt-resources.zip https://github.com/djdiskmachine/lgpt-resources/archive/refs/tags/${TAG}.zip
+          TAG=$(curl -fsSL "https://api.github.com/repos/djdiskmachine/lgpt-resources/tags" | jq -r '.[0].name')
+          curl -fL -o lgpt-resources.zip https://github.com/djdiskmachine/lgpt-resources/archive/refs/tags/${TAG}.zip
           unzip lgpt-resources.zip
           mv lgpt-resources-${TAG}/*/ ./resources/packaging
           rm -rf lgpt-resources*
@@ -106,8 +114,8 @@ jobs:
       - name: Package build
         working-directory: projects
         run: |
-          TAG=$(curl "https://api.github.com/repos/djdiskmachine/lgpt-resources/tags" | jq -r '.[0].name')
-          curl -L -o lgpt-resources.zip https://github.com/djdiskmachine/lgpt-resources/archive/refs/tags/${TAG}.zip
+          TAG=$(curl -fsSL "https://api.github.com/repos/djdiskmachine/lgpt-resources/tags" | jq -r '.[0].name')
+          curl -fL -o lgpt-resources.zip https://github.com/djdiskmachine/lgpt-resources/archive/refs/tags/${TAG}.zip
           unzip lgpt-resources.zip
           mv lgpt-resources-${TAG}/*/ ./resources/packaging
           rm -rf lgpt-resources*
@@ -139,8 +147,8 @@ jobs:
       - name: Package build
         working-directory: projects
         run: |
-          TAG=$(curl "https://api.github.com/repos/djdiskmachine/lgpt-resources/tags" | jq -r '.[0].name')
-          curl -L -o lgpt-resources.zip https://github.com/djdiskmachine/lgpt-resources/archive/refs/tags/${TAG}.zip
+          TAG=$(curl -fsSL "https://api.github.com/repos/djdiskmachine/lgpt-resources/tags" | jq -r '.[0].name')
+          curl -fL -o lgpt-resources.zip https://github.com/djdiskmachine/lgpt-resources/archive/refs/tags/${TAG}.zip
           unzip lgpt-resources.zip
           mv lgpt-resources-${TAG}/*/ ./resources/packaging
           rm -rf lgpt-resources*
@@ -178,8 +186,8 @@ jobs:
       - name: Package build
         working-directory: projects
         run: |
-          TAG=$(curl "https://api.github.com/repos/djdiskmachine/lgpt-resources/tags" | jq -r '.[0].name')
-          curl -L -o lgpt-resources.zip https://github.com/djdiskmachine/lgpt-resources/archive/refs/tags/${TAG}.zip
+          TAG=$(curl -fsSL "https://api.github.com/repos/djdiskmachine/lgpt-resources/tags" | jq -r '.[0].name')
+          curl -fL -o lgpt-resources.zip https://github.com/djdiskmachine/lgpt-resources/archive/refs/tags/${TAG}.zip
           unzip lgpt-resources.zip
           mv lgpt-resources-${TAG}/*/ ./resources/packaging
           rm -rf lgpt-resources*
@@ -212,8 +220,8 @@ jobs:
       - name: Package build
         working-directory: projects
         run: |
-          TAG=$(curl "https://api.github.com/repos/djdiskmachine/lgpt-resources/tags" | jq -r '.[0].name')
-          curl -L -o lgpt-resources.zip https://github.com/djdiskmachine/lgpt-resources/archive/refs/tags/${TAG}.zip
+          TAG=$(curl -fsSL "https://api.github.com/repos/djdiskmachine/lgpt-resources/tags" | jq -r '.[0].name')
+          curl -fL -o lgpt-resources.zip https://github.com/djdiskmachine/lgpt-resources/archive/refs/tags/${TAG}.zip
           unzip lgpt-resources.zip
           mv lgpt-resources-${TAG}/*/ ./resources/packaging
           rm -rf lgpt-resources*
@@ -232,7 +240,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4.1.7
 
       - name: Install Garlic Plus toolchain
         run: |
@@ -248,8 +256,8 @@ jobs:
       - name: Package build
         working-directory: projects
         run: |
-          TAG=$(curl "https://api.github.com/repos/djdiskmachine/lgpt-resources/tags" | jq -r '.[0].name')
-          curl -L -o lgpt-resources.zip https://github.com/djdiskmachine/lgpt-resources/archive/refs/tags/${TAG}.zip
+          TAG=$(curl -fsSL "https://api.github.com/repos/djdiskmachine/lgpt-resources/tags" | jq -r '.[0].name')
+          curl -fL -o lgpt-resources.zip https://github.com/djdiskmachine/lgpt-resources/archive/refs/tags/${TAG}.zip
           unzip lgpt-resources.zip
           mv lgpt-resources-${TAG}/*/ ./resources/packaging
           rm -rf lgpt-resources*
@@ -267,7 +275,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4.1.7
 
       - name: Install rg35xx Stock Toolchain
         run: |
@@ -283,8 +291,8 @@ jobs:
       - name: Package build
         working-directory: projects
         run: |
-          TAG=$(curl "https://api.github.com/repos/djdiskmachine/lgpt-resources/tags" | jq -r '.[0].name')
-          curl -L -o lgpt-resources.zip https://github.com/djdiskmachine/lgpt-resources/archive/refs/tags/${TAG}.zip
+          TAG=$(curl -fsSL "https://api.github.com/repos/djdiskmachine/lgpt-resources/tags" | jq -r '.[0].name')
+          curl -fL -o lgpt-resources.zip https://github.com/djdiskmachine/lgpt-resources/archive/refs/tags/${TAG}.zip
           unzip lgpt-resources.zip
           mv lgpt-resources-${TAG}/*/ ./resources/packaging
           rm -rf lgpt-resources*
@@ -319,8 +327,8 @@ jobs:
       - name: Package build
         working-directory: projects
         run: |
-          TAG=$(curl "https://api.github.com/repos/djdiskmachine/lgpt-resources/tags" | jq -r '.[0].name')
-          curl -L -o lgpt-resources.zip https://github.com/djdiskmachine/lgpt-resources/archive/refs/tags/${TAG}.zip
+          TAG=$(curl -fsSL "https://api.github.com/repos/djdiskmachine/lgpt-resources/tags" | jq -r '.[0].name')
+          curl -fL -o lgpt-resources.zip https://github.com/djdiskmachine/lgpt-resources/archive/refs/tags/${TAG}.zip
           unzip lgpt-resources.zip
           mv lgpt-resources-${TAG}/*/ ./resources/packaging
           rm -rf lgpt-resources*
@@ -353,8 +361,8 @@ jobs:
       - name: Package build
         working-directory: projects
         run: |
-          TAG=$(curl "https://api.github.com/repos/djdiskmachine/lgpt-resources/tags" | jq -r '.[0].name')
-          curl -L -o lgpt-resources.zip https://github.com/djdiskmachine/lgpt-resources/archive/refs/tags/${TAG}.zip
+          TAG=$(curl -fsSL "https://api.github.com/repos/djdiskmachine/lgpt-resources/tags" | jq -r '.[0].name')
+          curl -fL -o lgpt-resources.zip https://github.com/djdiskmachine/lgpt-resources/archive/refs/tags/${TAG}.zip
           unzip lgpt-resources.zip
           mv lgpt-resources-${TAG}/*/ ./resources/packaging
           rm -rf lgpt-resources*

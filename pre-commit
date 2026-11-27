@@ -8,38 +8,41 @@ fi
 
 NEEDS_FORMATTING=0
 
+# Print one --lines=START:END argument per added or changed line range in a
+# "git diff -U0" read from stdin. Same ranges as the CI check (check.yml).
+changed_ranges() {
+  awk '/^@@/ {
+    split(substr($3, 2), r, ",")
+    count = (r[2] == "") ? 1 : r[2]
+    if (count > 0) print "--lines=" r[1] ":" (r[1] + count - 1)
+  }'
+}
+
 # Run clang-format on the changed lines of each staged file
-for FILE in $STAGED_FILES; do
+while IFS= read -r FILE; do
   echo Formatting "$FILE" ...
-  # Format the originally staged changed lines
-  CHANGED_LINES=$(git diff --cached -U0 -- "$FILE" | grep -E '^@@' | awk '{print $3}' | cut -d',' -f1)
-
-  for LINE in $CHANGED_LINES; do
-    LINE_START=$(echo "$LINE" | cut -d'+' -f2)
-    [ -z "$LINE_START" ] && continue
-    clang-format -i --lines="$LINE_START:$LINE_START" "$FILE"
-  done
-
-  # clang-format can cascade into adjacent lines; loop until the file stabilises
-  MAX_ITER=10
+  # Format every line that differs from HEAD, as CI does against the PR base.
+  # clang-format can cascade into adjacent lines; repeat with the new ranges
+  # until the file stabilises, so CI's single pass then changes nothing.
+  # In old tab-indented code each pass can re-indent one more line.
+  MAX_ITER=100
   ITER=0
   while [ $ITER -lt $MAX_ITER ]; do
     PREV=$(cksum "$FILE")
-    NEW_LINES=$(git diff -U0 -- "$FILE" | grep -E '^@@' | awk '{print $3}' | cut -d',' -f1)
-    for LINE in $NEW_LINES; do
-      LINE_START=$(echo "$LINE" | cut -d'+' -f2)
-      [ -z "$LINE_START" ] && continue
-      clang-format -i --lines="$LINE_START:$LINE_START" "$FILE"
-    done
+    RANGES=$(git diff -U0 HEAD -- "$FILE" | changed_ranges)
+    [ -n "$RANGES" ] && clang-format -i $RANGES "$FILE"
     [ "$(cksum "$FILE")" = "$PREV" ] && break
     ITER=$((ITER + 1))
   done
+  [ $ITER -eq $MAX_ITER ] && echo "$FILE did not settle after $MAX_ITER passes; CI may still flag it"
 
   if ! git diff --quiet "$FILE"; then
     NEEDS_FORMATTING=1
     echo "$FILE"
   fi
-done
+done <<EOF
+$STAGED_FILES
+EOF
 
 if [ $NEEDS_FORMATTING -eq 1 ]; then
   echo "The above files were auto-formatted. Please review and commit again."
