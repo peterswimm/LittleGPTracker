@@ -137,6 +137,8 @@ void InstrumentBank::RestoreContent(TiXmlElement *element) {
 						case IT_MIDI:
 							instr=new MidiInstrument() ;
 							break ;
+                        case IT_LAST: // not reached: skipped above
+                            break;
 					}
 					instrument_[id]=instr ;
 				} ;
