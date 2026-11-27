@@ -13,33 +13,51 @@ int jack_callback(jack_nframes_t nframes, void *arg) {
 	client->ProcessCallback(nframes) ;
 	return 0 ;
 }
-	
-static char clientName[64] ;
 
-JackClient::JackClient() {
-} ;
+// Called on a JACK thread when the server goes away. It must not block, so
+// it only sets a flag and logs; the client is closed later, in the destructor.
+static void jack_shutdown(void *arg) {
+    JackClient *client = (JackClient *)arg;
+    client->OnShutdown();
+}
+
+JackClient::JackClient() : client_(0), shutdown_(false) {};
 
 JackClient::~JackClient() {
-	Trace::Debug("[J]: close driver") ;
-	jack_client_close (client_);
-} ;
+    Trace::Debug("[J]: close driver");
+    if (client_) {
+        jack_client_close(client_);
+    }
+};
 
 bool JackClient::Init() {
 
-	long time=System::GetInstance()->GetClock() ;
-	sprintf(clientName,"littlegptracker-%ld",time) ;
-	
-// Initialise callbacks
+    // Initialise callbacks
 
-	jack_set_error_function (jack_error);
+    jack_set_error_function(jack_error);
 
-	client_ = jack_client_new(clientName) ;
-	if (!client_) {
-		return false ;
-	}
-	jack_set_process_callback (client_, jack_callback, this);
-	return true ;
-} ;
+    // A fixed name lets JACK patchbays restore connections; the server adds
+    // a suffix if another instance already uses it. JackNoStartServer: if no
+    // server is running, fall back to the default audio driver instead of
+    // starting one.
+    jack_status_t status;
+    client_ = jack_client_open("littlegptracker", JackNoStartServer, &status);
+    if (!client_) {
+        Trace::Debug("[J]: jack_client_open failed, status 0x%x",
+                     (unsigned)status);
+        return false;
+    }
+    jack_on_shutdown(client_, jack_shutdown, this);
+    jack_set_process_callback(client_, jack_callback, this);
+    return true;
+};
+
+void JackClient::OnShutdown() {
+    shutdown_ = true;
+    Trace::Debug("[J]: JACK server shut down, audio stopped");
+};
+
+bool JackClient::IsShutdown() { return shutdown_; };
 
 bool JackClient::Available() {
 	return client_!=0 ;

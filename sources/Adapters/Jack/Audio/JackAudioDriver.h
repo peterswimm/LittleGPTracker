@@ -30,20 +30,25 @@ public:
 	virtual bool StartDriver() ; 
 	virtual void StopDriver();
 	virtual int GetPlayedBufferPercentage() { return 0 ; }
-	virtual int GetSampleRate() { return 44100 ; } ;
-	virtual bool Interlaced() { return true ; } ;	
-	virtual double GetStreamTime() ;
-	jack_port_t *GetPort() ;
-	virtual void ProcessCallback(jack_nframes_t nframes) ;
-	void dumpBuffer(jack_default_audio_sample_t *dstL,jack_default_audio_sample_t *dstR,short *src,int sampleCount) ;
-private:
-	bool running_ ;
-	short *tempBuffer_ ;
-	short *current_ ;
-	unsigned int available_ ;
-	jack_client_t *client_ ;
-	jack_port_t *portL_;
-	jack_port_t *portR_;
+    virtual int GetSampleRate();
+    virtual bool Interlaced() { return true; };
+    virtual double GetStreamTime();
+    jack_port_t *GetPort();
+    virtual void ProcessCallback(jack_nframes_t nframes);
+    void dumpBuffer(jack_default_audio_sample_t *dstL,
+                    jack_default_audio_sample_t *dstR, short *src,
+                    int sampleCount);
+
+  private:
+    bool running_;
+    short *tempBuffer_;
+    short *current_;
+    unsigned int available_;
+    // set by StartDriver, handled by the process callback
+    volatile bool restart_;
+    jack_client_t *client_;
+    jack_port_t *portL_;
+    jack_port_t *portR_;
     JackAudioDriverThread *thread_ ;
 	jack_time_t startTime_ ;
 } ;

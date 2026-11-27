@@ -19,9 +19,14 @@ public:
 	bool Init() ;
 	bool Available() ;
 	jack_client_t* GetClient() ;
-	virtual void ProcessCallback(jack_nframes_t nframes) ; 
-private:
-	jack_client_t* client_ ;
+    virtual void ProcessCallback(jack_nframes_t nframes);
+    // called from JACK's shutdown handler
+    void OnShutdown();
+    bool IsShutdown();
+
+  private:
+    jack_client_t *client_;
+    volatile bool shutdown_;
 } ;
 
 #endif
