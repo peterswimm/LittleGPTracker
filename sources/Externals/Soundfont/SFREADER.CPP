@@ -924,6 +924,8 @@ WORD       mono =        monoSample;
 
 }// end Allocate
 
+#define MAX_INFO_CK_SIZE 65536
+
 SHORT sfReader::storeInfoCks(void)
 /*
 ===============================================================================
@@ -954,9 +956,14 @@ sfVersion *ver;
 
    resetInfoCkValues();   /* Make sure we are playing with a clean slate */
 
-   for(curToken = Ifil; curToken <= Icmt; curToken++) { 
+   for (curToken = Ifil; curToken <= Icmt; curToken++) {
 
-       if( tRIFF.FindCk(tRIFF.GetRIFFToken(curToken)) == SUCCESS ) {
+       // FindCk ignores case, so this also finds the "IFIL" some banks use.
+       // Info chunks are at most 65536 bytes (ICMT); a bigger size is bogus
+       // and would overflow the size + sizeof(sfVersion) below, so the chunk
+       // is treated as absent.
+       if (tRIFF.FindCk(tRIFF.GetRIFFToken(curToken)) == SUCCESS &&
+           tRIFF.GetCkSize() <= MAX_INFO_CK_SIZE) {
 
            infoCkValues[curToken] =
                new CHAR[tRIFF.GetCkSize() + sizeof(sfVersion)];
@@ -993,23 +1000,10 @@ sfVersion *ver;
                     << infoCkValues[curToken] << endl;
 #endif
            }
-     }//
-     else { // we didn't find the current chunk, but wait! is it the ifil?
-         if (curToken == Ifil) { // check if the uppercase equiv it present...
-             if (tRIFF.FindCk("IFIL") == SUCCESS) {
-                 infoCkValues[curToken] =
-                     new CHAR[tRIFF.GetCkSize() + sizeof(sfVersion)];
-                 stat = tRIFF.RIFFRead(infoCkValues[curToken], 1,
-                                       (SHORT)tRIFF.GetCkSize());
-                 ver = (sfVersion *)infoCkValues[curToken];
-                 tRIFF.SwapBytes(&ver->wMajor);
-                 tRIFF.SwapBytes(&ver->wMinor);
-             }
-         }
-     }//end else
+       }
 
-   }// end for all chunks
-  
+   } // end for all chunks
+
   /*  ok we make sure there is some kind of name for the bank, if there was
    *  was no INAM chunk found, we'll put in a default of SoundFont Bank  
    */ 

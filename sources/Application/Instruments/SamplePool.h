@@ -7,6 +7,8 @@
 #include "Application/Model/Song.h"
 #include "Foundation/Observable.h"
 
+#include <vector>
+
 #define MAX_PIG_SAMPLES MAX_SAMPLEINSTRUMENT_COUNT
 
 enum SamplePoolEventType {
@@ -46,12 +48,17 @@ public:
   const char *GetSampleLib();
 protected:
   void unload(int i);
+  void freeRetired();
+  int announceLast();
   int loadSample(const char *path);
   int loadSoundFont(const char *path);
   int getIndexOf(const char *path);
   int count_;
   char *names_[MAX_PIG_SAMPLES];
   SoundSource *wav_[MAX_PIG_SAMPLES];
+  // samples taken out of the pool while they may still be playing; freed
+  // in Reset()
+  std::vector<SoundSource *> retired_;
 };
 
 #endif
