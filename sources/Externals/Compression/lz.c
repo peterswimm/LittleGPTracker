@@ -541,3 +541,77 @@ void LZ_Uncompress( unsigned char *in, unsigned char *out,
     }
     while( inpos < insize );
 }
+
+/*************************************************************************
+* LZ_UncompressBounded() - Same decoder as LZ_Uncompress, with bounds.
+*  in      - Input (compressed) buffer.
+*  out     - Output (uncompressed) buffer of outsize bytes.
+*  insize  - Number of input bytes.
+*  outsize - Size of the output buffer.
+* Returns the number of bytes written, or -1 if the stream is damaged: it
+* would write past outsize, refer back before the start of the output, or
+* end in the middle of a code. Added for LittleGPTracker, which reads
+* these streams from project files; LZ_Uncompress trusts its input.
+*************************************************************************/
+
+static int _LZ_ReadVarSizeBounded(unsigned int *x, unsigned char *buf,
+                                  unsigned int avail) {
+    unsigned int y = 0, b, num_bytes = 0;
+    do {
+        /* A value never needs more than 5 bytes for 32 bits */
+        if (num_bytes >= avail || num_bytes >= 5)
+            return -1;
+        b = (unsigned int)buf[num_bytes++];
+        y = (y << 7) | (b & 0x0000007f);
+    } while (b & 0x00000080);
+    *x = y;
+    return (int)num_bytes;
+}
+
+int LZ_UncompressBounded(unsigned char *in, unsigned char *out,
+                         unsigned int insize, unsigned int outsize) {
+    unsigned char marker, symbol;
+    unsigned int i, inpos, outpos, length, offset;
+    int n;
+
+    if (insize < 1)
+        return 0;
+
+    marker = in[0];
+    inpos = 1;
+    outpos = 0;
+    while (inpos < insize) {
+        symbol = in[inpos++];
+        if (symbol != marker) {
+            if (outpos >= outsize)
+                return -1;
+            out[outpos++] = symbol;
+            continue;
+        }
+        if (inpos >= insize)
+            return -1;
+        if (in[inpos] == 0) {
+            /* A single occurrence of the marker byte */
+            if (outpos >= outsize)
+                return -1;
+            out[outpos++] = marker;
+            ++inpos;
+            continue;
+        }
+        n = _LZ_ReadVarSizeBounded(&length, &in[inpos], insize - inpos);
+        if (n < 0)
+            return -1;
+        inpos += n;
+        n = _LZ_ReadVarSizeBounded(&offset, &in[inpos], insize - inpos);
+        if (n < 0)
+            return -1;
+        inpos += n;
+        if (offset == 0 || offset > outpos || length > outsize - outpos)
+            return -1;
+        for (i = 0; i < length; ++i) {
+            out[outpos] = out[outpos - offset];
+            ++outpos;
+        }
+    }
+    return (int)outpos;
+}

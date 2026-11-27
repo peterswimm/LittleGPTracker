@@ -15,12 +15,15 @@
 #include "ProjectDatas.h"
 #include <math.h>
 
+#define DEFAULT_TEMPO 138
+
 Project::Project()
 :Persistent("PROJECT")
 ,midiDeviceList_(0),
 tempoNudge_(0)
 {
-    WatchedVariable *tempo = new WatchedVariable("tempo", VAR_TEMPO, 138);
+    WatchedVariable *tempo =
+        new WatchedVariable("tempo", VAR_TEMPO, DEFAULT_TEMPO);
     this->Insert(tempo);
     Variable *masterVolume = new Variable("master", VAR_MASTERVOL, 100, 100);
     this->Insert(masterVolume) ;
@@ -313,10 +316,11 @@ void Project::RestoreContent(TiXmlElement *element) {
 	};
 
 	// Get table ratio
-	
-	int tableRatio ;
-	if (!element->Attribute("TABLERATIO",&tableRatio)) {
-		tableRatio=(doc->version_<=32)?2:1 ;
+
+    int tableRatio;
+    // SyncMaster divides by the ratio, so anything below 1 gets the default
+    if (!element->Attribute("TABLERATIO", &tableRatio) || tableRatio < 1) {
+        tableRatio=(doc->version_<=32)?2:1 ;
 	}
 	SyncMaster::GetInstance()->SetTableRatio(tableRatio) ;
 
@@ -331,7 +335,14 @@ void Project::RestoreContent(TiXmlElement *element) {
 			v->SetString(value) ;
 		} ;
 		current=current->NextSiblingElement() ;
-	} ;
+    };
+
+    // SyncMaster divides by the tempo: a tempo below 1 from a damaged file
+    // goes back to the default rather than giving infinite tick lengths
+    Variable *tempo = FindVariable(VAR_TEMPO);
+    if (tempo && tempo->GetInt() < 1) {
+        tempo->SetInt(DEFAULT_TEMPO);
+    }
 };
 
 

@@ -48,6 +48,9 @@ int LZ_CompressFast( unsigned char *in, unsigned char *out,
                      unsigned int insize, unsigned int *work );
 void LZ_Uncompress( unsigned char *in, unsigned char *out,
                     unsigned int insize );
+/* Added for LittleGPTracker: returns bytes written, or -1 if damaged */
+int LZ_UncompressBounded(unsigned char *in, unsigned char *out,
+                         unsigned int insize, unsigned int outsize);
 
 
 #ifdef __cplusplus

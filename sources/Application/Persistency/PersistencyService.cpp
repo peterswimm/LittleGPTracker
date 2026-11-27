@@ -4,6 +4,10 @@
 #include "System/Console/Trace.h"
 #include "Foundation/Types/Types.h"
 
+// Far above any real project (a full one is well under 1 MB of XML), and
+// low enough that a damaged size cannot ask for an absurd allocation.
+#define MAX_UNCOMPRESSED_PROJECT (16 * 1024 * 1024)
+
 PersistencyService::PersistencyService():Service(MAKE_FOURCC('S','V','P','S')) {
 } ;
 
@@ -44,43 +48,67 @@ bool PersistencyService::Load() {
 	int length=file->Tell() ;
 
     // One more byte for the terminator TinyXML parses up to
-    unsigned char *compBuffer = (unsigned char *)SYS_MALLOC(length + 1);
+    unsigned char *compBuffer =
+        (length > 0) ? (unsigned char *)SYS_MALLOC(length + 1) : 0;
+    if (!compBuffer) {
+        Trace::Error("could not read project file (%d bytes)", length);
+        file->Close();
+        delete file;
+        return false;
+    }
 
   file->Seek(0,SEEK_SET) ;
 	file->Read(compBuffer,1,length) ;
     compBuffer[length] = 0;
     file->Close();
-	delete file ;
-	
-	if (!doc.Parse((char *)compBuffer)) {
-        
-		// Get uncompressed buffer size from first byte
-		
-		int offset=sizeof(int) ;
-		int fullLength ;
-		memcpy(&fullLength,compBuffer,offset) ;
-		
-		// Allocate a buffer to decompress data
-		
-		unsigned char *xmlSource=(unsigned char *)SYS_MALLOC(fullLength) ;
-		if (!xmlSource) {
-			Trace::Error("could not allocate space for %d bytes") ;
-			return false ;
-		}
+    delete file;
 
-    LZ_Uncompress(compBuffer+offset,xmlSource,length-offset);
+    if (!doc.Parse((char *)compBuffer)) {
 
-		// Initialize XML document on decompressed buffer
+        // Not XML: an LZ-compressed file, starting with the uncompressed
+        // size. Check that size and decode within it, since both come
+        // from the file.
+
+        int offset = sizeof(int);
+        int fullLength = 0;
+        if (length > offset)
+            memcpy(&fullLength, compBuffer, offset);
+        if (fullLength <= 0 || fullLength > MAX_UNCOMPRESSED_PROJECT) {
+            Trace::Error("project file is damaged (size %d)", fullLength);
+            SYS_FREE(compBuffer);
+            return false;
+        }
+
+        // Allocate a buffer to decompress data, plus the terminator
+
+        unsigned char *xmlSource =
+            (unsigned char *)SYS_MALLOC(fullLength + 1);
+        if (!xmlSource) {
+            Trace::Error("could not allocate space for %d bytes", fullLength);
+            SYS_FREE(compBuffer);
+            return false;
+        }
+
+        int got = LZ_UncompressBounded(compBuffer + offset, xmlSource,
+                                       length - offset, fullLength);
+        if (got != fullLength) {
+            Trace::Error("project file is damaged (decoded %d of %d bytes)",
+                         got, fullLength);
+            SYS_FREE(xmlSource);
+            SYS_FREE(compBuffer);
+            return false;
+        }
+        xmlSource[fullLength] = 0;
+
+        // Initialize XML document on decompressed buffer
 		doc.Parse((char *)xmlSource) ;
 
 		SYS_FREE(xmlSource) ;
+    };
+    SYS_FREE(compBuffer) ;
 
-		
-	} ; 
-	SYS_FREE(compBuffer) ;
-
-	TiXmlNode* node = 0;
-	node = doc.FirstChild( "LITTLEGPTRACKER" );
+    TiXmlNode *node = 0;
+    node = doc.FirstChild( "LITTLEGPTRACKER" );
 	if (!node) {
 		Trace::Error("could not find master node") ;
 		return false ;
