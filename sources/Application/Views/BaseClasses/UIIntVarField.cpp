@@ -46,15 +46,15 @@ void UIIntVarField::Draw(GUIWindow &w,int offset) {
 		case Variable::INT:
 			{
 			int ivalue=src_.GetInt()+displayOffset_ ;
-			sprintf(buffer,format_,ivalue,ivalue) ;
-			}
+            snprintf(buffer, sizeof(buffer), format_, ivalue, ivalue);
+            }
 			break ;
 		case Variable::CHAR_LIST:
 		case Variable::BOOL:
 			{
 			const char *cvalue=src_.GetString() ;
-			sprintf(buffer,format_,cvalue) ;
-			}
+            snprintf(buffer, sizeof(buffer), format_, cvalue);
+            }
 			break ;
 
 		default:

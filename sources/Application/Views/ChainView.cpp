@@ -681,7 +681,7 @@ void ChainView::DrawView() {
 
     char title[20];
     SetColor(CD_NORMAL);
-    sprintf(title, "Chain %2.2x", viewData_->currentChain_);
+    snprintf(title, sizeof(title), "Chain %2.2x", viewData_->currentChain_);
     DrawString(pos._x, pos._y, title, props);
 
     // Compute song grid location

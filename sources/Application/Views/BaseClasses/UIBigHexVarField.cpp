@@ -25,8 +25,8 @@ void UIBigHexVarField::Draw(GUIWindow &w,int offset) {
 	
 	char buffer[80] ;
 	int value=src_.GetInt() ;
-	sprintf(buffer,format_,value) ;
-	w.DrawString(buffer,position,props) ;
+    snprintf(buffer, sizeof(buffer), format_, value);
+    w.DrawString(buffer,position,props) ;
 	
 	int percentPos=-1 ;
 	for (unsigned int i=0;i<strlen(format_);i++) {

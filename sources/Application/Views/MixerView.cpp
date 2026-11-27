@@ -215,8 +215,8 @@ void MixerView::processNormalButtonMask(unsigned int mask) {
                 SetNotification("       Low Pass Filter: OFF");
             } else {
                 char notifBuf[40];
-                sprintf(notifBuf, "       Low Pass Filter: %dHz",
-                        (int)newFreq);
+                snprintf(notifBuf, sizeof(notifBuf),
+                         "       Low Pass Filter: %dHz", (int)newFreq);
                 SetNotification(notifBuf);
             }
         } else if (mixerRow_ == 2) {
@@ -524,8 +524,9 @@ void MixerView::OnPlayerUpdate(PlayerEventType, unsigned int tick) {
     char strbuffer[10];
 
     pos._y += 1;
-    sprintf(strbuffer,"%3.3d%%",player->GetPlayedBufferPercentage()) ;
-	DrawString(pos._x,pos._y,strbuffer,props) ;
+    snprintf(strbuffer, sizeof(strbuffer), "%3.3d%%",
+             player->GetPlayedBufferPercentage());
+    DrawString(pos._x,pos._y,strbuffer,props) ;
 
     System *sys = System::GetInstance();
     int batt=sys->GetBatteryLevel() ;
@@ -538,16 +539,16 @@ void MixerView::OnPlayerUpdate(PlayerEventType, unsigned int tick) {
 		} ;
 		props.invert_=invertBatt_ ;
 
-	    pos._y+=1 ;
-        sprintf(strbuffer, "%3.3d", batt);
+        pos._y += 1;
+        snprintf(strbuffer, sizeof(strbuffer), "%3.3d", batt);
         DrawString(pos._x,pos._y,strbuffer,props) ;
     }
     SetColor(CD_NORMAL);
     props.invert_=false ;
     int time=int(player->GetPlayTime()) ;
     int mi=time/60 ;
-    int se=time-mi*60 ;
-    sprintf(strbuffer, "%2.2d:%2.2d", mi, se);
+    int se = time - mi * 60;
+    snprintf(strbuffer, sizeof(strbuffer), "%2.2d:%2.2d", mi, se);
     pos._y += 1;
     DrawString(pos._x,pos._y,strbuffer,props) ;
 

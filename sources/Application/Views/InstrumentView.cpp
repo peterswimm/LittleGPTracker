@@ -471,7 +471,8 @@ void InstrumentView::DrawView() {
 
     char title[20];
     SetColor(CD_NORMAL);
-    sprintf(title, "Instrument %2.2X", viewData_->currentInstrument_);
+    snprintf(title, sizeof(title), "Instrument %2.2X",
+             viewData_->currentInstrument_);
     DrawString(pos._x, pos._y, title, props);
 
     // Draw fields

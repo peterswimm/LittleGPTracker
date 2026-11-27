@@ -1213,7 +1213,8 @@ void SongView::OnPlayerUpdate(PlayerEventType eventType, unsigned int tick) {
 
     char strbuffer[10];
     pos._y += 1;
-    sprintf(strbuffer, "%3.3d%%", player->GetPlayedBufferPercentage());
+    snprintf(strbuffer, sizeof(strbuffer), "%3.3d%%",
+             player->GetPlayedBufferPercentage());
     DrawString(pos._x, pos._y, strbuffer, props);
 
     System *sys = System::GetInstance();
@@ -1228,7 +1229,7 @@ void SongView::OnPlayerUpdate(PlayerEventType eventType, unsigned int tick) {
         props.invert_ = invertBatt_;
 
         pos._y += 1;
-        sprintf(strbuffer, "%3.3d", batt);
+        snprintf(strbuffer, sizeof(strbuffer), "%3.3d", batt);
         DrawString(pos._x, pos._y, strbuffer, props);
     }
 
@@ -1238,7 +1239,7 @@ void SongView::OnPlayerUpdate(PlayerEventType eventType, unsigned int tick) {
         int time = int(player->GetPlayTime());
         int mi = time / 60;
         int se = time - mi * 60;
-        sprintf(strbuffer, "%2.2d:%2.2d", mi, se);
+        snprintf(strbuffer, sizeof(strbuffer), "%2.2d:%2.2d", mi, se);
         pos._y += 1;
         DrawString(pos._x, pos._y, strbuffer, props);
     }

@@ -228,7 +228,7 @@ void MidiInstrument::ProcessCommand(int channel, FourCC cc, ushort value) {
 
 const char *MidiInstrument::GetName() {
     Variable *v = FindVariable(MIP_CHANNEL);
-    sprintf(name_, "MIDI CH %2.2d", v->GetInt() + 1);
+    snprintf(name_, sizeof(name_), "MIDI CH %2.2d", v->GetInt() + 1);
     return name_ ;
 }
 
