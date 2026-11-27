@@ -4,11 +4,17 @@
 #include "Services/Audio/Audio.h"
 #include "jack/jack.h"
 
+class JackAudioDriver;
+
 class JackAudio: public Audio {
 public:
 	JackAudio(AudioSettings &hints) ;
 	~JackAudio() ;
 	virtual void Init() ;
 	virtual void Close() ;
+    virtual int GetSampleRate();
+
+  private:
+    JackAudioDriver *drv_;
 };
 #endif

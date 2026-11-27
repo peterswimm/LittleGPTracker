@@ -88,7 +88,12 @@ void LINUXSystem::Boot(int argc, char **argv) {
 
 #ifdef JACKAUDIO
     Trace::Log("System", "Installing JACK audio");
-    Audio::Install(new JackAudio(AudioSettings hints));
+    if (JackClient::GetInstance()->Init()) {
+        AudioSettings jackHints; // the JACK driver ignores the hints
+        Audio::Install(new JackAudio(jackHints));
+    } else {
+        Trace::Error("No JACK server running");
+    }
 #endif
 
 #ifdef RTAUDIO

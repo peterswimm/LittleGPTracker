@@ -32,42 +32,78 @@ JackAudioDriver::JackAudioDriver(jack_client_t *client,AudioSettings &settings):
 	portL_ = jack_port_register (client, "mixL",JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, 0);
 	portR_ = jack_port_register (client, "mixR",JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, 0);
 	thread_=0 ;
+    running_ = false;
+    tempBuffer_ = 0;
+    current_ = 0;
+    available_ = 0;
+    startTime_ = 0;
+    restart_ = false;
 } ;
 
 JackAudioDriver::~JackAudioDriver() {
 } ;
 
+int JackAudioDriver::GetSampleRate() {
+    // the engine renders at the server's rate (48000 on most JACK2 and
+    // PipeWire setups), not a fixed 44100
+    return client_ ? int(jack_get_sample_rate(client_)) : 44100;
+};
+
 bool JackAudioDriver::InitDriver() {
 
 	Trace::Debug("[J]: Init driver") ;
 
-// Get output port and connect straight to the default system output
+    if (!portL_ || !portR_) {
+        Trace::Error("[J]: cannot register output ports");
+        return false;
+    }
 
-    thread_=new JackAudioDriverThread(this) ;
+    // The process callback runs on JACK's realtime thread, so the buffer it
+    // plays from is allocated here rather than there
+    if (!tempBuffer_) {
+        tempBuffer_ = (short *)SYS_MALLOC(SOUND_BUFFER_MAX);
+        if (!tempBuffer_) {
+            Trace::Error("[J]: cannot allocate the audio buffer");
+            return false;
+        }
+    }
+    restart_ = true;
+
+    // Get output port and connect straight to the default system output
+
+    thread_ = new JackAudioDriverThread(this);
     thread_->Start() ;
+    running_ = false;
 
-	const char **ports;
+    const char **ports;
 
-	Trace::Debug("[J]: Get ports") ;
-	if ((ports = jack_get_ports (client_, NULL, NULL, 
-                               JackPortIsPhysical|JackPortIsInput)) == NULL) {
-		Trace::Debug("Cannot find any physical playback ports\n");
-		return false ;
-	}
-	
-	Trace::Debug("[J]: connect L") ;
-	if (jack_connect (client_, jack_port_name (portL_), ports[0])) {
-	    fprintf (stderr, "cannot connect left out\n");
-	}
-	Trace::Debug("[J]: connect R") ;
-	if (jack_connect (client_, jack_port_name (portR_), ports[1])) {
-	    fprintf (stderr, "cannot connect right out\n");
-	}
-	running_=false ;
-	Trace::Debug("[J]: free ports") ;
-	free (ports);
+    Trace::Debug("[J]: Get ports");
+    ports = jack_get_ports(client_, NULL, JACK_DEFAULT_AUDIO_TYPE,
+                           JackPortIsPhysical | JackPortIsInput);
+    if (ports == NULL || ports[0] == NULL) {
+        // headless servers and some PipeWire setups have none: keep running,
+        // the ports can be connected with a patchbay
+        Trace::Debug("[J]: no physical playback ports, outputs unconnected");
+        if (ports) {
+            jack_free(ports);
+        }
+        return true;
+    }
 
-	return true ;
+    Trace::Debug("[J]: connect L");
+    if (jack_connect(client_, jack_port_name(portL_), ports[0])) {
+        Trace::Debug("[J]: cannot connect left out");
+    }
+    // a mono playback device has a single port: send both channels to it
+    const char *right = ports[1] ? ports[1] : ports[0];
+    Trace::Debug("[J]: connect R");
+    if (jack_connect(client_, jack_port_name(portR_), right)) {
+        Trace::Debug("[J]: cannot connect right out");
+    }
+    Trace::Debug("[J]: free ports");
+    jack_free(ports);
+
+    return true;
 } ;
 
 void JackAudioDriver::CloseDriver() {
@@ -77,21 +113,28 @@ void JackAudioDriver::CloseDriver() {
 		thread_->Notify() ;
 		while(!thread_->IsFinished()) {
 		} ;
-	} ;
-	thread_=0 ;
+        delete thread_;
+    };
+    thread_ = 0;
+    // JackAudio::Close deactivates the client first, so the process callback
+    // no longer reads the buffer
+    SAFE_FREE(tempBuffer_);
+    current_ = 0;
+    available_ = 0;
 } ;
 
 bool JackAudioDriver::StartDriver() {
 	Trace::Debug("[J]: start driver") ;
-	tempBuffer_=0 ;
-	available_=0 ;
-	startTime_ = jack_get_time() ;
-	return true ;
+    // the process callback may be running: it drops what it was playing at
+    // its next call, so only that thread writes current_ and available_
+    restart_ = true;
+    startTime_ = jack_get_time();
+    return true;
 } ;
 
-void JackAudioDriver::StopDriver() {
-	SAFE_FREE(tempBuffer_) ;
-} ;
+// The buffer is kept: the process callback keeps running while the driver is
+// stopped, and it plays silence once AudioDriver::Stop clears hasData_
+void JackAudioDriver::StopDriver() {};
 
 void JackAudioDriver::dumpBuffer(jack_default_audio_sample_t *dstL,jack_default_audio_sample_t *dstR,short *src,int frameCount) {
 
@@ -123,26 +166,39 @@ void JackAudioDriver::ProcessCallback(jack_nframes_t frames) {
 //	JackMidiService *jms=(JackMidiService *)MidiService::GetInstance() ;
 //	jms->OnNewFrame() ;
 
-	if (!tempBuffer_) {
-		tempBuffer_=(short *)malloc(SOUND_BUFFER_MAX) ;
-		current_=tempBuffer_ ;
-		available_=0 ;
-	}
+    if (!outL || !outR) {
+        return;
+    }
 
-	if (!hasData()) {
-		SYS_MEMSET(outL,0,nframes*sizeof(jack_default_audio_sample_t)) ;
-		SYS_MEMSET(outR,0,nframes*sizeof(jack_default_audio_sample_t)) ;
-		if (thread_) thread_->Notify() ;
-	} else {
-		while (nframes>0) {
+    // not initialised yet, or already closed
+    if (!tempBuffer_) {
+        SYS_MEMSET(outL, 0, nframes * sizeof(jack_default_audio_sample_t));
+        SYS_MEMSET(outR, 0, nframes * sizeof(jack_default_audio_sample_t));
+        return;
+    }
+    if (restart_) {
+        restart_ = false;
+        current_ = tempBuffer_;
+        available_ = 0;
+    }
 
-			int read=0 ;
-	
-			if (!available_) {
-				thread_->Notify() ;
-	//			jms->SetFrameOffset(frames-nframes) ;
-	//			jms->Flush() ;
-				if (pool_[poolPlayPosition_].buffer_!=0) {
+    if (!hasData()) {
+        SYS_MEMSET(outL, 0, nframes * sizeof(jack_default_audio_sample_t));
+        SYS_MEMSET(outR, 0, nframes * sizeof(jack_default_audio_sample_t));
+        if (thread_)
+            thread_->Notify();
+    } else {
+        while (nframes > 0) {
+
+            int read = 0;
+
+            if (!available_) {
+                if (thread_) {
+                    thread_->Notify();
+                }
+                //			jms->SetFrameOffset(frames-nframes) ;
+                //			jms->Flush() ;
+                if (pool_[poolPlayPosition_].buffer_ != 0) {
                     // tempBuffer_ holds SOUND_BUFFER_MAX bytes
                     int size = pool_[poolPlayPosition_].size_;
                     if (size > SOUND_BUFFER_MAX) {
