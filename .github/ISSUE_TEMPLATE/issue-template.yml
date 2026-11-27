@@ -13,9 +13,10 @@ body:
     id: logs
     attributes:
       label: lgpt.log
-      description: Paste or attach the log file.
+      description: |
+        For bugs, attach the log file. If you paste it instead, wrap it in a code block (```) so it displays correctly.
     validations:
-      required: true
+      required: false
   - type: dropdown
     id: platform
     attributes:
@@ -27,17 +28,24 @@ body:
         - Other
     validations:
       required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Device, OS and audio configuration
+      description: For bugs, give the device or console model, OS version and audio setup (driver, interface, buffer size).
+    validations:
+      required: false
   - type: input
     id: version
     attributes:
       label: Build version
-      description: Enter the Little Piggy Tracker version.
+      description: Enter the Little Piggy Tracker version, if applicable.
     validations:
-      required: true
+      required: false
   - type: textarea
     id: steps
     attributes:
-      label: Steps to reproduce
-      description: Describe the issue in detail.
+      label: Description and steps to reproduce
+      description: Describe the issue or feature request in detail. For bugs, list the steps to reproduce it.
     validations:
       required: true
