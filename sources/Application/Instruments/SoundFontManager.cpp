@@ -36,8 +36,11 @@ sfBankID SoundFontManager::LoadBank(const char *path) {
 
 	I_File *fin=FileSystem::GetInstance()->Open(path,"r") ;
 	if (!fin) {
+        sfUnloadSFBank(id);
         return -SF_OPEN_ERROR;
     }
+    fin->Seek(0, SEEK_END);
+    long fileSize = fin->Tell();
 
 	// Grab the sample offset
 
@@ -46,7 +49,19 @@ sfBankID SoundFontManager::LoadBank(const char *path) {
 	// Grab the sample headerzz
 
 	WORD headerCount=0 ;
-	SFSAMPLEHDRPTR  &headers=sfGetSampHdrs(id,&headerCount ); 
+    SFSAMPLEHDRPTR &headers = sfGetSampHdrs(id, &headerCount);
+
+    // Refuse the bank if a sample does not lie inside the file: playback
+    // would read through a NULL or truncated buffer
+    for (int i = 0; i < headerCount; i++) {
+        sfSampleHdr &h = headers[i];
+        if (h.dwEnd < h.dwStart || h.dwEnd > (ADDR)(fileSize - offset) / 2) {
+            fin->Close();
+            SAFE_DELETE(fin);
+            sfUnloadSFBank(id);
+            return -SF_LOAD_ERROR;
+        }
+    }
 
 	// Loop on every sample, load them and adapt the pointers
 

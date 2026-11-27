@@ -37,5 +37,6 @@ private:
 
 	static int bufferChunkSize_ ;
 	static bool initChunkSize_ ;
+    bool readFailed_; // a read came up short (past the end of the file)
 } ;
 #endif
