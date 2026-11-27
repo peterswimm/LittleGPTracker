@@ -67,7 +67,7 @@ void MixerService::initRendering(MixerServiceRenderMode mode) {
     case MSRM_STEMS:
         for (int i = 0; i < SONG_CHANNEL_COUNT; i++) {
             char buffer[1024];
-            sprintf(buffer, "project:channel%d.wav", i);
+            snprintf(buffer, sizeof(buffer), "project:channel%d.wav", i);
             bus_[i].SetFileRenderer(buffer);
         }
         break;

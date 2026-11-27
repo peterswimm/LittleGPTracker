@@ -84,7 +84,7 @@ void Variable::SetFloat(float value, bool notify) {
         value_.index_ = int(value);
         break;
     case STRING:
-        sprintf(string_, "%f", value);
+        snprintf(string_, sizeof(string_), "%f", value);
         stringValue_ = string_;
         break;
     }
@@ -108,7 +108,7 @@ void Variable::SetInt(int value, bool notify) {
         value_.index_ = value;
         break;
     case STRING:
-        sprintf(string_,"%d",value);
+        snprintf(string_, sizeof(string_), "%d", value);
         stringValue_=string_;
         break;
     }
@@ -233,10 +233,10 @@ const char *Variable::GetString() {
     string_[0] = 0;
     switch(type_) {
     case FLOAT:
-        sprintf(string_, "%f", value_.float_);
+        snprintf(string_, sizeof(string_), "%f", value_.float_);
         break;
     case INT:
-        sprintf(string_, "%d", value_.int_);
+        snprintf(string_, sizeof(string_), "%d", value_.int_);
         break;
     case BOOL:
         strcpy(string_, value_.bool_ ? "true" : "false");

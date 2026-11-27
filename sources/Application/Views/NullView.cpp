@@ -19,8 +19,9 @@ void NullView::DrawView() {
 	SetColor(CD_HILITE2) ;
 
 	char buildString[80] ;
-	sprintf(buildString,"Piggy build %s.%s.%s",PROJECT_NUMBER,PROJECT_RELEASE,BUILD_COUNT) ;
-	GUIPoint pos ;
+    snprintf(buildString, sizeof(buildString), "Piggy build %s.%s.%s",
+             PROJECT_NUMBER, PROJECT_RELEASE, BUILD_COUNT);
+    GUIPoint pos ;
 	pos._y=28;
 	pos._x=(40-strlen(buildString))/2 ;
 	DrawString(pos._x,pos._y,buildString,props) ;

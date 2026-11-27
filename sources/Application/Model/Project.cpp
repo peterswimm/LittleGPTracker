@@ -364,10 +364,10 @@ void Project::LoadFirstGen(const char *root) {
 
 
 	char filename[1024] ;
-	sprintf(filename,"%s/lgptsav.dat",root) ;
+    snprintf(filename, sizeof(filename), "%s/lgptsav.dat", root);
 
-	FileSystem *fs=FileSystem::GetInstance() ;
-	I_File *file=fs->Open(filename,"r") ;
+    FileSystem *fs = FileSystem::GetInstance();
+    I_File *file=fs->Open(filename,"r") ;
 
 	if (file) {
 		// Read file

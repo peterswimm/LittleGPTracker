@@ -85,15 +85,15 @@ void View::drawMap() {
     	char buffer[5] ;
 		props.invert_=true ;
 		//row1
-		sprintf(buffer,"P G ");
+        snprintf(buffer, sizeof(buffer), "P G ");
         DrawString(pos._x,pos._y,buffer,props) ;
 		pos._y++ ;		
 		//row2
-		sprintf(buffer,"SCPI");
+        snprintf(buffer, sizeof(buffer), "SCPI");
         DrawString(pos._x,pos._y,buffer,props) ;
 		pos._y++ ;		
 		//row3
-        sprintf(buffer, " MTT");
+        snprintf(buffer, sizeof(buffer), " MTT");
         DrawString(pos._x,pos._y,buffer,props) ;
 
 		//draw current screen on map
