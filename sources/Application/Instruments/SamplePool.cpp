@@ -25,6 +25,7 @@ SamplePool::~SamplePool() {
 		SAFE_DELETE(wav_[i]) ;
 		SAFE_FREE(names_[i]) ;
 	} ;
+    freeRetired();
 } ;
 
 const char *SamplePool::GetSampleLib() {
@@ -39,8 +40,16 @@ void SamplePool::Reset() {
 		SAFE_DELETE(wav_[i]) ;
 		SAFE_FREE(names_[i]) ;
 	} ;
-	SoundFontManager::GetInstance()->Reset() ;
+    freeRetired();
+    SoundFontManager::GetInstance()->Reset() ;
 } ;
+
+void SamplePool::freeRetired() {
+    for (size_t i = 0; i < retired_.size(); i++) {
+        delete retired_[i];
+    }
+    retired_.clear();
+}
 
 /*
   Returns an element of
@@ -175,6 +184,17 @@ if (wave) {
 
 #define IMPORT_CHUNK_SIZE 1000
 
+// True if both paths name the same file (repeated '/' ignored)
+static bool samePath(std::string a, std::string b) {
+    std::string *s[] = {&a, &b};
+    for (int i = 0; i < 2; i++) {
+        std::string::size_type pos;
+        while ((pos = s[i]->find("//")) != std::string::npos)
+            s[i]->erase(pos, 1);
+    }
+    return a == b;
+}
+
 /*
   Returns a nonnegative int or an element of
   {-SLOAD_ERR_INVALID_DIR, -SLOAD_ERR_INPUT_FILE, -SLOAD_ERR_MAX_SAMPLES,
@@ -190,6 +210,20 @@ int SamplePool::ImportSample(Path &path) {
     std::string dpath = "samples:";
     dpath+=path.GetName() ;
 	Path dstPath(dpath.c_str()) ;
+
+    // a sample of that name is already in the project: use it rather than
+    // overwriting its file
+    int existing = getIndexOf(path.GetName().c_str());
+    if (existing >= 0 && dstPath.Matches("*.wav"))
+        return existing;
+    // importing a file from the project's own samples folder: copying would
+    // truncate it, and a failed load must not delete it, so load it in place
+    if (samePath(path.GetPath(), dstPath.GetPath())) {
+        int status = dstPath.Matches("*.wav")
+                         ? loadSample(dstPath.GetPath().c_str())
+                         : loadSoundFont(dstPath.GetPath().c_str());
+        return status == SLOAD_OK ? announceLast() : -status;
+    }
 
     // Opens files
 
@@ -243,14 +277,18 @@ int SamplePool::ImportSample(Path &path) {
         FileSystem::GetInstance()->Delete(dstPath.GetPath().c_str());
         return -status;
     }
+    return announceLast();
+};
 
+// Tells observers about the last sample added and returns its index
+int SamplePool::announceLast() {
     SetChanged();
     SamplePoolEvent ev ;
 	ev.index_=count_-1 ;
 	ev.type_=SPET_INSERT ;
     NotifyObservers(&ev);
     return count_ - 1;
-};
+}
 
 bool SamplePool::IsImported(std::string name) {
     std::string dpath="samples:";
@@ -329,6 +367,11 @@ void SamplePool::unload(int i) {
 	std::string wavPath="samples:" ;
 	wavPath+=names_[i] ;
 	Path path(wavPath.c_str()) ;
+
+    // an instrument may still be playing the sample, so it is only freed in
+    // Reset(); the name is only read by the UI
+    retired_.push_back(wav_[i]);
+    SAFE_FREE(names_[i]);
 
 	// shift all entries from deleted to end
 	for (int j=i;j<count_-1;j++) {
