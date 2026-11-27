@@ -63,8 +63,8 @@ void UIIntVarOffField::Draw(GUIWindow &w,int offset) {
 		{
 			int ivalue=src_.GetInt() ;
 			if (ivalue!=VAR_OFF) {
-				sprintf(buffer,format_,ivalue,ivalue) ;
-			} else {
+                snprintf(buffer, sizeof(buffer), format_, ivalue, ivalue);
+            } else {
 				char format[256] ;
 				strcpy(format,format_) ;
 				char *location=strchr(format,'%') ;
@@ -79,10 +79,10 @@ void UIIntVarOffField::Draw(GUIWindow &w,int offset) {
 					}
 				}
 				if (location) {
-					sprintf(buffer,format,"--") ;
-				} else {
-					sprintf(buffer,"++wtf++") ;
-				}
+                    snprintf(buffer, sizeof(buffer), format, "--");
+                } else {
+                    snprintf(buffer, sizeof(buffer), "++wtf++");
+                }
 			}
 		}
 		break ;

@@ -45,11 +45,11 @@ void Trace::VLog(const char* category,  const char *fmt, const va_list& args)
 #endif
 {
   char buffer[4096] ;
-  sprintf(buffer, "[%s] ",category);
-  
+  snprintf(buffer, sizeof(buffer), "[%s] ", category);
+
   char *ptr = buffer+strlen(buffer);
-  
-  vsprintf(ptr, fmt, args);
+
+  vsnprintf(ptr, sizeof(buffer) - (ptr - buffer), fmt, args);
   GetInstance()->AddLine(buffer) ;
 }
 

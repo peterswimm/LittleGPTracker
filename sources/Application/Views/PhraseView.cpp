@@ -1260,7 +1260,7 @@ void PhraseView::DrawView() {
     char title[20];
 
     SetColor(CD_NORMAL);
-    sprintf(title, "Phrase %2.2x", viewData_->currentPhrase_);
+    snprintf(title, sizeof(title), "Phrase %2.2x", viewData_->currentPhrase_);
     DrawString(pos._x, pos._y, title, props);
 
     // Compute song grid location
@@ -1337,7 +1337,7 @@ void PhraseView::DrawView() {
             DrawString(pos._x, pos._y, buffer, props);
             if (j == row_ && (col_ == 0 || col_ == 1)) {
                 SetColor(CD_NORMAL);
-                sprintf(buffer, "I%2.2x: ", d);
+                snprintf(buffer, sizeof(buffer), "I%2.2x: ", d);
                 std::string instrLine = buffer;
                 setTextProps(props, 1, j, true);
                 GUIPoint location = GetTitlePosition();

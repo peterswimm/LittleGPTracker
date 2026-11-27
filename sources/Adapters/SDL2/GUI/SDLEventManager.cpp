@@ -56,12 +56,12 @@ bool SDLEventManager::Init()
 		Trace::Log("EVENT","Number of axis:%d",SDL_JoystickNumAxes(joystick_[i])) ;
 		Trace::Log("EVENT","Number of buttons:%d",SDL_JoystickNumButtons(joystick_[i])) ;
 		Trace::Log("EVENT","Number of hats:%d",SDL_JoystickNumHats(joystick_[i])) ;
-		sprintf(sourceName,"buttonJoy%d",i) ;
-		buttonCS_[i]=new ButtonControllerSource(sourceName) ;
-		sprintf(sourceName,"axisJoy%d",i) ;
-		joystickCS_[i]=new JoystickControllerSource(sourceName) ;
-		sprintf(sourceName,"hatJoy%d",i) ;
-		hatCS_[i]=new HatControllerSource(sourceName) ;
+        snprintf(sourceName, sizeof(sourceName), "buttonJoy%d", i);
+        buttonCS_[i]=new ButtonControllerSource(sourceName) ;
+        snprintf(sourceName, sizeof(sourceName), "axisJoy%d", i);
+        joystickCS_[i]=new JoystickControllerSource(sourceName) ;
+        snprintf(sourceName, sizeof(sourceName), "hatJoy%d", i);
+        hatCS_[i]=new HatControllerSource(sourceName) ;
 	}
   
 	return true ;
