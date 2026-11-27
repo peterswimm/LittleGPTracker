@@ -4,12 +4,7 @@
 #include "Application/Utils/wildcard.h"	
 #include <ctype.h>
 
-
-
-I_File *DummyFileSystem::Open(const char *path,char *mode) {
-	return 0 ;
-} ;
-
+I_File *DummyFileSystem::Open(const char *path, const char *mode) { return 0; };
 
 I_Dir *DummyFileSystem::Open(const char *path) {
     return 0 ;

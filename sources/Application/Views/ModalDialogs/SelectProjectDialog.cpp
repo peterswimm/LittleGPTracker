@@ -9,7 +9,7 @@
 #define LIST_SIZE 20
 #define LIST_WIDTH 32
 
-static char *buttonText[3] = {"Load", "New", "Exit"};
+static const char *buttonText[3] = {"Load", "New", "Exit"};
 
 Path SelectProjectDialog::lastFolder_("root:") ;
 int SelectProjectDialog::lastProject_ = 0 ;

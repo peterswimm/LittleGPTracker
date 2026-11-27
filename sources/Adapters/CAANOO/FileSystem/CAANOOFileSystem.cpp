@@ -12,13 +12,12 @@
 CAANOODir::CAANOODir(const char *path):I_Dir(path) {
 } ;
 
-void CAANOODir::GetContent(char *mask) {
+void CAANOODir::GetContent(const char *mask) {
 
-	Empty() ;
+    Empty();
 
- 
-	DIR* directory; 
-	struct dirent* entry; 
+    DIR *directory;
+    struct dirent* entry; 
 
  
 	directory = opendir (path_); 
@@ -46,10 +45,8 @@ void CAANOODir::GetContent(char *mask) {
 			Insert(path) ;
 		} else {
         }
-	
-    } ;   
-	closedir (directory);
-	
+    };
+    closedir(directory);
 };
 
 CAANOOFile::CAANOOFile(FILE *file) {
@@ -85,9 +82,9 @@ void CAANOOFile::Close() {
 	fclose(file_) ;
 } ;
 
-I_File *CAANOOFileSystem::Open(const char *path,char *mode) {
-	const char *rmode ;
-	switch(*mode) {
+I_File *CAANOOFileSystem::Open(const char *path, const char *mode) {
+    const char *rmode;
+    switch(*mode) {
         case 'r':
             rmode="rb" ;
             break ;
@@ -104,7 +101,7 @@ I_File *CAANOOFileSystem::Open(const char *path,char *mode) {
 		wFile=new CAANOOFile(file) ;
 	}
 	return wFile ;
-} ;
+};
 
 I_Dir *CAANOOFileSystem::Open(const char *path) {
     return new CAANOODir(path) ;

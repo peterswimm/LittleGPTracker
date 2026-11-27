@@ -818,7 +818,7 @@ void ChainView::OnPlayerUpdate(PlayerEventType eventType, unsigned int tick) {
                         unsigned char chainPos =
                             player->GetQueueChainPosition(i);
                         pos._y = anchor._y + chainPos;
-                        char *indicator = player->GetLiveIndicator(i);
+                        const char *indicator = player->GetLiveIndicator(i);
                         DrawString(pos._x, pos._y, indicator, props);
                         lastQueuedPos_ = chainPos;
                         break;

@@ -23,14 +23,14 @@ class NDSDir: public I_Dir {
 public:
     NDSDir(const char *path) ;
 	virtual ~NDSDir() {} ;
-    virtual void GetContent(char *mask) ;
+    virtual void GetContent(const char *mask);
 } ;
 
 class NDSFileSystem: public FileSystem {
 public:
     NDSFileSystem() ;
-	virtual I_File *Open(const char *path,char *mode);
-	virtual I_Dir *Open(const char *path) ;
+    virtual I_File *Open(const char *path, const char *mode);
+    virtual I_Dir *Open(const char *path) ;
     char root_[1024] ;
 } ;
 #endif

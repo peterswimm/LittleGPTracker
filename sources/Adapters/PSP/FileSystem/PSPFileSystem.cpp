@@ -69,16 +69,16 @@ void PSPFile::Close() {
 PSPDir::PSPDir(const char *path):I_Dir(path) {
 }
 
-void PSPDir::GetContent(char *mask) {
+void PSPDir::GetContent(const char *mask) {
 
-	Empty() ;
+    Empty();
 
-  SceIoDirent de;
-  memset(&de,0,sizeof(SceIoDirent));
+    SceIoDirent de;
+    memset(&de, 0, sizeof(SceIoDirent));
 
-  SceUID fd=sceIoDopen(path_);
-  if(fd<0) {
-    Trace::Error("Failed to open %s",path_);
+    SceUID fd = sceIoDopen(path_);
+    if (fd < 0) {
+        Trace::Error("Failed to open %s", path_);
 		return;
 	}
 	
@@ -109,21 +109,19 @@ void PSPDir::GetContent(char *mask) {
 //		sceIoClose(v) ;
         v=sceIoDread(fd,&de);
     }
-	
-	sceIoDclose(fd) ;
 
+    sceIoDclose(fd);
 };
-
 
 I_Dir *PSPFileSystem::Open(const char *path) {
     return new PSPDir(path) ;
 }
 
-I_File *PSPFileSystem::Open(const char *path,char *mode) {
-	
-	int flags=0 ;
-	
-	switch(*mode) {
+I_File *PSPFileSystem::Open(const char *path, const char *mode) {
+
+    int flags = 0;
+
+    switch(*mode) {
         case 'r':
             flags=PSP_O_RDONLY ;
             break ;

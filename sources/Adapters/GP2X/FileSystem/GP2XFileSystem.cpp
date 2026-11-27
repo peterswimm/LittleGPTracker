@@ -14,13 +14,12 @@
 GP2XDir::GP2XDir(const char *path):I_Dir(path) {
 } ;
 
-void GP2XDir::GetContent(char *mask) {
+void GP2XDir::GetContent(const char *mask) {
 
-	Empty() ;
+    Empty();
 
- 
-	DIR* directory; 
-	struct dirent* entry; 
+    DIR *directory;
+    struct dirent* entry; 
 
  
 	directory = opendir (path_); 
@@ -49,10 +48,8 @@ void GP2XDir::GetContent(char *mask) {
 			Insert(path) ;
 		} else {
         }
-	
-    } ;   
-	closedir (directory);
-	
+    };
+    closedir(directory);
 };
 
 GP2XFile::GP2XFile(FILE *file) {
@@ -88,9 +85,9 @@ void GP2XFile::Close() {
 	fclose(file_) ;
 } ;
 
-I_File *GP2XFileSystem::Open(const char *path,char *mode) {
-	char *rmode ;
-	switch(*mode) {
+I_File *GP2XFileSystem::Open(const char *path, const char *mode) {
+    char *rmode;
+    switch(*mode) {
         case 'r':
             rmode="rb" ;
             break ;
@@ -107,7 +104,7 @@ I_File *GP2XFileSystem::Open(const char *path,char *mode) {
 		wFile=new GP2XFile(file) ;
 	}
 	return wFile ;
-} ;
+};
 
 I_Dir *GP2XFileSystem::Open(const char *path) {
     return new GP2XDir(path) ;

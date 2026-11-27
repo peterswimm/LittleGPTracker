@@ -23,15 +23,15 @@ class DINGOODir: public I_Dir {
 public:
     DINGOODir(const char *path) ;
 	virtual ~DINGOODir() {} ;
-    virtual void GetContent(char *mask) ;
+    virtual void GetContent(const char *mask);
 } ;
 
 class DINGOOFileSystem: public FileSystem {
 public:
-	virtual I_File *Open(const char *path,char *mode);
-	virtual I_Dir *Open(const char *path) ;
-	virtual FileType GetFileType(const char *path) ;	
-	virtual void MakeDir(const char *path) ;	
-	virtual void Delete(const char *path) ;	
+  virtual I_File *Open(const char *path, const char *mode);
+  virtual I_Dir *Open(const char *path);
+  virtual FileType GetFileType(const char *path);
+  virtual void MakeDir(const char *path);
+  virtual void Delete(const char *path);	
 } ;
 #endif

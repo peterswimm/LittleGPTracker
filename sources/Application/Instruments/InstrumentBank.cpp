@@ -9,11 +9,7 @@
 #include "Application/Persistency/PersistencyService.h"
 #include "Filters.h"
 
-char *InstrumentTypeData[IT_LAST]= {
-	"Sample",
-	"Midi"
-} ;
-
+const char *InstrumentTypeData[IT_LAST] = {"Sample", "Midi"};
 
 // Contain all instrument definition
 

@@ -13,7 +13,7 @@ class FxPrinter {
 public:
     FxPrinter(ViewData* viewData);
     bool Run();
-    char *GetNotification();
+    const char *GetNotification();
 
   private:
     void setParams();
@@ -30,7 +30,7 @@ public:
     std::string ir_;
     std::string foWav_;
     std::string ffmpeg_;
-    char* notificationResult_;
+    const char *notificationResult_;
 };
 
 #endif // FxPrinter_H

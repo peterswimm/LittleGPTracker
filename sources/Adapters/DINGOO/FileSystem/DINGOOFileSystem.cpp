@@ -12,13 +12,12 @@
 DINGOODir::DINGOODir(const char *path):I_Dir(path) {
 } ;
 
-void DINGOODir::GetContent(char *mask) {
+void DINGOODir::GetContent(const char *mask) {
 
-	Empty() ;
+    Empty();
 
- 
-	DIR* directory; 
-	struct dirent* entry; 
+    DIR *directory;
+    struct dirent* entry; 
 
  
 	directory = opendir (path_); 
@@ -87,9 +86,9 @@ void DINGOOFile::Close() {
 	fclose(file_) ;
 } ;
 
-I_File *DINGOOFileSystem::Open(const char *path,char *mode) {
-	char *rmode ;
-	switch(*mode) {
+I_File *DINGOOFileSystem::Open(const char *path, const char *mode) {
+    char *rmode;
+    switch(*mode) {
         case 'r':
             rmode="rb" ;
             break ;
@@ -106,7 +105,7 @@ I_File *DINGOOFileSystem::Open(const char *path,char *mode) {
 		wFile=new DINGOOFile(file) ;
 	}
 	return wFile ;
-} ;
+};
 
 I_Dir *DINGOOFileSystem::Open(const char *path) {
     return new DINGOODir(path) ;
