@@ -16,6 +16,8 @@
 #include <math.h>
 
 #define DEFAULT_TEMPO 138
+// The tempo field's maximum (ProjectView)
+#define MAX_TEMPO 400
 
 Project::Project()
 :Persistent("PROJECT")
@@ -343,6 +345,11 @@ void Project::RestoreContent(TiXmlElement *element) {
     if (tempo && tempo->GetInt() < 1) {
         tempo->SetInt(DEFAULT_TEMPO);
     }
+    // A huge tempo makes a tick shorter than one sample, and LOOPSYNC then
+    // divides by a zero sample count
+    if (tempo && tempo->GetInt() > MAX_TEMPO) {
+        tempo->SetInt(MAX_TEMPO);
+    }
 };
 
 
@@ -503,23 +510,29 @@ void Project::OnTempoTap() {
   if (tempoTapCount_!=0) {
 		// count last tick tempo and see if in range
 		unsigned millisec=now-lastTap_[tempoTapCount_-1] ;
-		int t=int(60000/(float)millisec) ;
-		if (t>30) {
-			if (tempoTapCount_==MAX_TAP) {
-				for (int i=0;i<int(tempoTapCount_)-1;i++)  {
-					lastTap_[i]=lastTap_[i+1] ;
-				}				
-			} else {
-				tempoTapCount_++ ;
-			}
-			int tempo=int(60000*(tempoTapCount_-1)/(float)(now-lastTap_[0])) ;
-			Variable *v=FindVariable(VAR_TEMPO) ;
-			v->SetInt(tempo) ;
-		} else {
-			tempoTapCount_=1 ;
-		}
-	} else {
-		tempoTapCount_=1 ;
-	}
-	lastTap_[tempoTapCount_-1]=now ;
+        // a second tap in the same millisecond would divide by zero
+        if (millisec == 0)
+            return;
+        int t = int(60000 / (float)millisec);
+        if (t > 30) {
+            if (tempoTapCount_ == MAX_TAP) {
+                for (int i = 0; i < int(tempoTapCount_) - 1; i++) {
+                    lastTap_[i] = lastTap_[i + 1];
+                }
+            } else {
+                tempoTapCount_++;
+            }
+            int tempo =
+                int(60000 * (tempoTapCount_ - 1) / (float)(now - lastTap_[0]));
+            if (tempo > MAX_TEMPO)
+                tempo = MAX_TEMPO;
+            Variable *v = FindVariable(VAR_TEMPO);
+            v->SetInt(tempo);
+        } else {
+            tempoTapCount_ = 1;
+        }
+  } else {
+      tempoTapCount_ = 1;
+  }
+  lastTap_[tempoTapCount_ - 1] = now;
 }
