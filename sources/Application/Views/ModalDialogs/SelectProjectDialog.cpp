@@ -14,6 +14,13 @@ static char *buttonText[3] = {"Load", "New", "Exit"};
 Path SelectProjectDialog::lastFolder_("root:") ;
 int SelectProjectDialog::lastProject_ = 0 ;
 
+// A project is a folder whose name starts with "lgpt" (any case)
+static bool isProjectFolder(const std::string &name) {
+    std::string prefix = name.substr(0, 4);
+    std::transform(prefix.begin(), prefix.end(), prefix.begin(), ::tolower);
+    return prefix == "lgpt";
+}
+
 static void NewProjectCallback(View &v,ModalView &dialog) {
 
 	NewProjectDialog &npd=(NewProjectDialog &)dialog ;
@@ -141,8 +148,8 @@ void SelectProjectDialog::DrawView() {
 				SetColor(CD_NORMAL) ;
 				props.invert_=false ;
 			}
-			strcpy(buffer,p.c_str()) ;
-			buffer[LIST_WIDTH-1]=0 ;
+            strncpy(buffer, p.c_str(), LIST_WIDTH - 1);
+            buffer[LIST_WIDTH-1]=0 ;
 			DrawString(x,y,buffer,props) ;
 			y+=1 ;
 		}
@@ -189,7 +196,10 @@ void SelectProjectDialog::ProcessButtonMask(unsigned short mask,bool pressed) {
                 count++;
             }
 
-            if (current != 0) {
+            // Only offer to delete projects, never ".." or other folders
+            if (current != 0 && !isProjectFolder(current->GetName())) {
+                View::SetNotification("Not a project", 0);
+            } else if (current != 0) {
                 std::string message =
                     "Delete project '" + current->GetName() + "' ?";
                 MessageBox *mb =
@@ -221,27 +231,32 @@ void SelectProjectDialog::ProcessButtonMask(unsigned short mask,bool pressed) {
                     }
                     count++;
                 }
+                if (current == 0) {
+                    break;
+                }
 
-					//check if folder is a project, indicated by 'lgpt' being the first 4 characters of the folder name
-					std::string name = current->GetName() ;
-					std::string firstFourChars = name.substr(0,4);
-					std::transform(firstFourChars.begin(), firstFourChars.end(), firstFourChars.begin(), ::tolower);
-					if(firstFourChars == "lgpt"){
-						//ugly hack to make the "name" include subdirectories
-						//we pass along everything past the root dir
-						selection_ = *current ;
-						lastFolder_=currentPath_ ;
-						lastProject_=currentProject_ ;
-						//load the project
-						EndModal(1) ;
-					} else {
-						if (current->GetName() == "..") {
-							Path parent=currentPath_.GetParent() ;
-							setCurrentFolder(parent) ;
-						} else {
-							Path newdir=*current ;
-							setCurrentFolder(newdir) ;
-						}
+                // check if folder is a project, indicated by 'lgpt' being the
+                // first 4 characters of the folder name
+                std::string name = current->GetName();
+                std::string firstFourChars = name.substr(0, 4);
+                std::transform(firstFourChars.begin(), firstFourChars.end(),
+                               firstFourChars.begin(), ::tolower);
+                if (firstFourChars == "lgpt") {
+                    // ugly hack to make the "name" include subdirectories
+                    // we pass along everything past the root dir
+                    selection_ = *current;
+                    lastFolder_ = currentPath_;
+                    lastProject_ = currentProject_;
+                    // load the project
+                    EndModal(1);
+                } else {
+                    if (current->GetName() == "..") {
+                        Path parent = currentPath_.GetParent();
+                        setCurrentFolder(parent);
+                    } else {
+                        Path newdir = *current;
+                        setCurrentFolder(newdir);
+                    }
 					}
 				break ;
 			}
@@ -283,9 +298,12 @@ void SelectProjectDialog::warpToNextProject(int amount) {
 
     int offset = currentProject_ - topIndex_;
     int size = content_.Size();
-    currentProject_+=amount ;
-	if (currentProject_<0) currentProject_+=size ;
-	if (currentProject_>=size) currentProject_-=size ;
+    if (size == 0) {
+        currentProject_ = 0;
+        return;
+    }
+    // wrap around; a page jump can be larger than the list
+    currentProject_ = ((currentProject_ + amount) % size + size) % size;
 
 	if ((amount>1)||(amount<-1)) {
 		topIndex_=currentProject_-offset ;
@@ -310,26 +328,34 @@ Result SelectProjectDialog::OnNewProject(std::string &name) {
         return Result(res);
     }
     Trace::Log("TMP","creating project at %s",path.GetPath().c_str());
-	selection_ = path ;
-	Result result = FileSystem::GetInstance()->MakeDir(path.GetPath().c_str()) ;
-	RETURN_IF_FAILED(result, ("Failed to create project dir for '%s", path.GetPath().c_str()));
+    selection_ = path;
+    Result result = FileSystem::GetInstance()->MakeDir(path.GetPath().c_str()) ;
+    RETURN_IF_FAILED(result, "Failed to create project dir for '" +
+                                 path.GetPath() + "'");
 
-	path = path.Descend("samples");
-	Trace::Log("TMP","creating samples dir at %s",path.GetPath().c_str());
-	result = FileSystem::GetInstance()->MakeDir(path.GetPath().c_str()) ;
-	RETURN_IF_FAILED(result, ("Failed to create samples dir for '%s'", path.GetPath().c_str()));
+    path = path.Descend("samples");
+    Trace::Log("TMP", "creating samples dir at %s", path.GetPath().c_str());
+    result = FileSystem::GetInstance()->MakeDir(path.GetPath().c_str()) ;
+    RETURN_IF_FAILED(result, "Failed to create samples dir for '" +
+                                 path.GetPath() + "'");
 
-	EndModal(1) ;
+    EndModal(1) ;
   return Result::NoError;
 } ;
 
 Result SelectProjectDialog::OnDeleteProject(const Path &projectPath) {
 
     Trace::Log("SelectProjectDialog:OnDelProj","deleting project at %s", projectPath.GetPath().c_str());
-	
-	// Make a non-const copy to check existence
-	Path pathCopy = projectPath;
-	
+
+    // Make a non-const copy to check existence
+    Path pathCopy = projectPath;
+
+    // Never recursively delete anything that is not a project folder
+    if (!isProjectFolder(pathCopy.GetName())) {
+        View::SetNotification("Not a project", 0);
+        return Result("Not a project: " + pathCopy.GetPath());
+    }
+
 	// Check if project exists before deletion
     if (!pathCopy.Exists()) {
         std::string errMsg = "Project not found";

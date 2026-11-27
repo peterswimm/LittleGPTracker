@@ -71,14 +71,9 @@ void ImportSampleDialog::DrawView() {
 				SetColor(CD_NORMAL) ;
                 props.invert_ = current.Matches("*.sf2");
             }
-			if (!current.IsDirectory()) {
-				strcpy(buffer,p.c_str()) ;
-			} else {
-				buffer[0]='[' ;
-				strcpy(buffer+1,p.c_str()) ;
-				strcat(buffer,"]") ;
-			}
-			buffer[LIST_WIDTH-1]=0 ;
+            std::string label = current.IsDirectory() ? "[" + p + "]" : p;
+            strncpy(buffer, label.c_str(), LIST_WIDTH - 1);
+            buffer[LIST_WIDTH-1]=0 ;
 			DrawString(x,y,buffer,props) ;
 			y+=1 ;
 		}
@@ -129,14 +124,18 @@ void ImportSampleDialog::import(Path &element) {
 
 	SamplePool *pool=SamplePool::GetInstance() ;
 	int sampleID=pool->ImportSample(element) ;
-	if (sampleID>=0) {
-		I_Instrument *instr=viewData_->project_->GetInstrumentBank()->GetInstrument(toInstr_) ;
+    if (sampleID >= 0 && toInstr_ == NO_MORE_INSTRUMENT) {
+        // every sample instrument already has a sample: keep the sample in
+        // the pool but don't index past the instrument bank
+        View::SetNotification("No free instrument");
+    } else if (sampleID >= 0) {
+        I_Instrument *instr=viewData_->project_->GetInstrumentBank()->GetInstrument(toInstr_) ;
 		if (instr->GetType()==IT_SAMPLE) {
 			SampleInstrument *sinstr=(SampleInstrument *)instr ;
 			sinstr->AssignSample(sampleID) ;
 			toInstr_=viewData_->project_->GetInstrumentBank()->GetNext() ;
 		};
-	} else {
+    } else {
         const char *err_str = (sampleID == -SLOAD_ERR_MAX_SAMPLES)
                                   ? "Maximum number of samples exceeded"
                               : (sampleID == -SLOAD_ERR_MAX_SOUNDFONTS)
@@ -147,8 +146,8 @@ void ImportSampleDialog::import(Path &element) {
         Trace::Error(err_str);
         MessageBox *mb = new MessageBox(*this, err_str);
         View::DoModal(mb);
-	};
-	isDirty_=true ;
+    };
+    isDirty_=true ;
 } ;
 
 void ImportSampleDialog::ProcessButtonMask(unsigned short mask,bool pressed) {
@@ -164,7 +163,14 @@ void ImportSampleDialog::ProcessButtonMask(unsigned short mask,bool pressed) {
 		if (mask&EPBM_DOWN) warpToNextSample(1) ;
 
 		Path *element = getImportElement();
-		setCurrent(element, mask);
+        if (!element) {
+            if (selected_ == 2) {
+                endPreview();
+                EndModal(0);
+            }
+            return;
+        }
+        setCurrent(element, mask);
 
 		switch(selected_) {
 			case 0: // preview
@@ -188,7 +194,10 @@ void ImportSampleDialog::ProcessButtonMask(unsigned short mask,bool pressed) {
 		if (mask&EPBM_UP) warpToNextSample(-1);
 		if (mask&EPBM_DOWN) warpToNextSample(1);
 		Path *element = getImportElement();
-		setCurrent(element, mask);
+        if (!element) {
+            return;
+        }
+        setCurrent(element, mask);
 		if(!element->IsDirectory()) {
 			preview(*element);
 		}
@@ -229,13 +238,14 @@ bool ImportSampleDialog::isSampleLibRoot()
 
 Path* ImportSampleDialog::getImportElement() {
 	IteratorPtr<Path> it(sampleList_.GetIterator());
-	int count = 0;
-	Path *element = 0;
-	for(it->Begin(); !it->IsDone(); it->Next()) {
+    int count = 0;
+    for(it->Begin(); !it->IsDone(); it->Next()) {
 		if (count++ == currentSample_) {
 			return &it->CurrentItem();
 		}
 	}
+    // empty list (e.g. a folder that could not be opened)
+    return 0;
 }
 
 void ImportSampleDialog::setCurrent(Path *element, unsigned short mask) {
