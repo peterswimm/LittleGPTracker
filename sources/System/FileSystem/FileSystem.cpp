@@ -30,10 +30,16 @@ Path::Path(const Path &other) {
 } ;
 
 Path &Path::operator=(const Path &other) {
-	SAFE_FREE(path_) ;
-	path_=(char *)SYS_MALLOC((int)strlen(other.path_)+1) ;
-	strcpy(path_,other.path_) ;
-	return *this ;
+    if (this == &other)
+        return *this;
+    char *copy = (char *)SYS_MALLOC((int)strlen(other.path_) + 1);
+    strcpy(copy, other.path_);
+    SAFE_FREE(path_);
+    path_ = copy;
+    // the cached type belongs to the path, so it is copied with it
+    gotType_ = other.gotType_;
+    type_ = other.type_;
+    return *this;
 } ;
 
 Path::~Path() {

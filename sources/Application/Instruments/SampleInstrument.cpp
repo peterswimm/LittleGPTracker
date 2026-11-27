@@ -795,8 +795,8 @@ bool SampleInstrument::Render(int channel, fixed *buffer, int size, int flags) {
 						volfactor=fp_mul(rp->volume_,volscale) ;
 						fpattenuate=fp_mul(rp->attenuate_,volscale) ;
 						pan=fp2i(rp->pan_) ;
-						fixed fixedpanl=panlaw[pan] ;
-						fixed fixedpanr=panlaw[254-pan] ;
+                        fixedpanl = panlaw[pan];
+                        fixedpanr = panlaw[254 - pan];
 
 						if (rpReverse) {
 							fpSpeed=-rp->speed_ ;

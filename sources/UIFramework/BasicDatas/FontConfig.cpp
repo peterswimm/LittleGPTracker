@@ -46,7 +46,9 @@ void FontConfig(){
 							const char *font_data=element->Attribute("value") ;
 							if (font_data) {
 								int i = 0, j = 0;
-								while (font_data[i] != '\0') {
+                                // stop once font[] is full
+                                while (font_data[i] != '\0' &&
+                                       j < (int)sizeof(font)) {
 									if (font_data[i] == '1') {
 										font[j++] = 1;
 									} else if (font_data[i] == '0') {
