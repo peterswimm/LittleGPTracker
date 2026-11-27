@@ -47,35 +47,39 @@ void Song::RestoreContent(TiXmlElement *element) {
 	while(current) {
 		const char *value=current->Value() ;
 		if (!strcmp("SONG",value)) {
-			restoreHexBuffer(current,data_) ;
-		} ;
-		if (!strcmp("CHAINS",value)) {
-			restoreHexBuffer(current,chain_->data_) ;
-		} ;
-		if (!strcmp("TRANSPOSES",value)) {
-			restoreHexBuffer(current,chain_->transpose_) ;
-		} ;
-		if (!strcmp("NOTES",value)) {
-			restoreHexBuffer(current,phrase_->note_) ;
-		} ;
-		if (!strcmp("INSTRUMENTS",value)) {
-			restoreHexBuffer(current,phrase_->instr_) ;
-		} ;
-		if (!strcmp("COMMAND1",value)) {
-			restoreHexBuffer(current,(uchar *)phrase_->cmd1_) ;
-		} ;
-		if (!strcmp("PARAM1",value)) {
-			restoreHexBuffer(current,(uchar *)phrase_->param1_) ;
-		} ;
-		if (!strcmp("COMMAND2",value)) {
-			restoreHexBuffer(current,(uchar *)phrase_->cmd2_) ;
-		} ;
-		if (!strcmp("PARAM2",value)) {
-			restoreHexBuffer(current,(uchar *)phrase_->param2_) ;
-		} ;
-		
-		
-		for (int i=0; i<PHRASE_COUNT*16; i++)
+            restoreHexBuffer(current, data_,
+                             SONG_ROW_COUNT * SONG_CHANNEL_COUNT);
+        } ;
+        if (!strcmp("CHAINS", value)) {
+            restoreHexBuffer(current, chain_->data_, CHAIN_COUNT * 16);
+        };
+        if (!strcmp("TRANSPOSES", value)) {
+            restoreHexBuffer(current, chain_->transpose_, CHAIN_COUNT * 16);
+        };
+        if (!strcmp("NOTES", value)) {
+            restoreHexBuffer(current, phrase_->note_, PHRASE_COUNT * 16);
+        };
+        if (!strcmp("INSTRUMENTS", value)) {
+            restoreHexBuffer(current, phrase_->instr_, PHRASE_COUNT * 16);
+        };
+        if (!strcmp("COMMAND1", value)) {
+            restoreHexBuffer(current, (uchar *)phrase_->cmd1_,
+                             PHRASE_COUNT * 16 * sizeof(FourCC));
+        };
+        if (!strcmp("PARAM1", value)) {
+            restoreHexBuffer(current, (uchar *)phrase_->param1_,
+                             PHRASE_COUNT * 16 * sizeof(ushort));
+        };
+        if (!strcmp("COMMAND2", value)) {
+            restoreHexBuffer(current, (uchar *)phrase_->cmd2_,
+                             PHRASE_COUNT * 16 * sizeof(FourCC));
+        };
+        if (!strcmp("PARAM2", value)) {
+            restoreHexBuffer(current, (uchar *)phrase_->param2_,
+                             PHRASE_COUNT * 16 * sizeof(ushort));
+        };
+
+        for (int i=0; i<PHRASE_COUNT*16; i++)
 		{
 			phrase_->param1_[i] = Swap16(phrase_->param1_[i]);
 			phrase_->param2_[i] = Swap16(phrase_->param2_[i]);
@@ -83,7 +87,15 @@ void Song::RestoreContent(TiXmlElement *element) {
 		
 		current=current->NextSiblingElement() ;
 	} ;
-	
+
+    // Phrase instruments index the instrument bank. Drop numbers a damaged
+    // file put out of range (0xFF is "no instrument").
+    for (int i = 0; i < PHRASE_COUNT * 16; i++) {
+        if (phrase_->instr_[i] != 0xFF &&
+            phrase_->instr_[i] >= MAX_INSTRUMENT_COUNT)
+            phrase_->instr_[i] = 0xFF;
+    }
+
 	Status::Set("Restoring allocation") ;
 
 	// Restore chain & phrase allocation table

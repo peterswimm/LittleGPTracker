@@ -326,8 +326,8 @@ void Project::RestoreContent(TiXmlElement *element) {
 	while (current) {
 		const char *name=current->Attribute("NAME") ;
 		const char *value=current->Attribute("VALUE") ;
-		Variable *v=FindVariable(name) ;
-		if (v) {
+        Variable *v = name ? FindVariable(name) : NULL;
+        if (v && value) {
 			v->SetString(value) ;
 		} ;
 		current=current->NextSiblingElement() ;

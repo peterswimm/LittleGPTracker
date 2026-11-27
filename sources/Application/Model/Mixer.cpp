@@ -32,13 +32,15 @@ void Mixer::RestoreContent(TiXmlElement *element) {
     while (current) {
         const char *value = current->Value();
         if (!strcmp("BUS", value)) {
-            restoreHexBuffer(current, (unsigned char *)channelBus_);
+            restoreHexBuffer(current, (unsigned char *)channelBus_,
+                             sizeof(channelBus_));
         } else if (!strcmp("VOL", value)) {
-            restoreHexBuffer(current, channelVolume_);
+            restoreHexBuffer(current, channelVolume_, sizeof(channelVolume_));
         } else if (!strcmp("HPF", value)) {
-            restoreHexBuffer(current, channelHPF_);
+            restoreHexBuffer(current, channelHPF_, sizeof(channelHPF_));
         } else if (!strcmp("LPF", value)) {
-            restoreHexBuffer(current, (unsigned char *)channelLPF_);
+            restoreHexBuffer(current, (unsigned char *)channelLPF_,
+                             sizeof(channelLPF_));
         }
         current = current->NextSiblingElement();
     }

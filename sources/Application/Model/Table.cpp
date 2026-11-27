@@ -111,33 +111,47 @@ void TableHolder::RestoreContent(TiXmlElement *element) {
 			// Get the table ID
 			
 			const char* hexid=current->Attribute("ID") ;
-			unsigned char b1=(c2h__(hexid[0]))<<4 ;
+            if (!hexid || strlen(hexid) < 2) {
+                current = current->NextSiblingElement();
+                continue;
+            }
+            unsigned char b1=(c2h__(hexid[0]))<<4 ;
 			unsigned char b2=c2h__(hexid[1]) ;
-			unsigned char id=b1+b2 ;	
+            unsigned char id = b1 + b2;
+            if (id >= TABLE_COUNT) {
+                current = current->NextSiblingElement();
+                continue;
+            }
 
-			Table &table=table_[id] ;
+            Table &table = table_[id];
 
-			TiXmlElement *sub=current->FirstChildElement() ;
-			while(sub) {
+            TiXmlElement *sub = current->FirstChildElement();
+            while(sub) {
 				const char *value=sub->Value() ;
 				if (!strcmp("CMD1",value)) {
-					restoreHexBuffer(sub,(unsigned char *)table.cmd1_) ;
-				} ;
+                    restoreHexBuffer(sub, (unsigned char *)table.cmd1_,
+                                     sizeof(table.cmd1_));
+                } ;
 				if (!strcmp("PARAM1",value)) {
-					restoreHexBuffer(sub,(unsigned char *)table.param1_) ;
-				} ;
+                    restoreHexBuffer(sub, (unsigned char *)table.param1_,
+                                     sizeof(table.param1_));
+                } ;
 				if (!strcmp("CMD2",value)) {
-					restoreHexBuffer(sub,(unsigned char *)table.cmd2_) ;
-				} ;
+                    restoreHexBuffer(sub, (unsigned char *)table.cmd2_,
+                                     sizeof(table.cmd2_));
+                } ;
 				if (!strcmp("PARAM2",value)) {
-					restoreHexBuffer(sub,(unsigned char *)table.param2_) ;
-				} ;
+                    restoreHexBuffer(sub, (unsigned char *)table.param2_,
+                                     sizeof(table.param2_));
+                } ;
 				if (!strcmp("CMD3",value)) {
-					restoreHexBuffer(sub,(unsigned char *)table.cmd3_) ;
-				} ;
+                    restoreHexBuffer(sub, (unsigned char *)table.cmd3_,
+                                     sizeof(table.cmd3_));
+                } ;
 				if (!strcmp("PARAM3",value)) {
-					restoreHexBuffer(sub,(unsigned char *)table.param3_) ;
-				} ;
+                    restoreHexBuffer(sub, (unsigned char *)table.param3_,
+                                     sizeof(table.param3_));
+                } ;
 				
 				for (int i=0; i<16; i++)
 				{

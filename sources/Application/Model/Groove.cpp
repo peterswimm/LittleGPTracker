@@ -48,7 +48,7 @@ void Groove::SaveContent(TiXmlNode *node) {
 
  void Groove::RestoreContent(TiXmlElement *element) {
  	TiXmlElement *current=element->FirstChildElement() ;
-	restoreHexBuffer(current,(unsigned char*)data_) ;
+    restoreHexBuffer(current, (unsigned char *)data_, sizeof(data_));
 }
 // Trigger grooves so we go to the next step
 

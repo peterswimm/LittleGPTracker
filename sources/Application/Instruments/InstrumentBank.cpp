@@ -105,7 +105,11 @@ void InstrumentBank::RestoreContent(TiXmlElement *element) {
 			// Get the instrument ID
 			
 			const char* hexid=current->Attribute("ID") ;
-			unsigned char b1=(c2h__(hexid[0]))<<4 ;
+            if (!hexid || strlen(hexid) < 2) {
+                current = current->NextSiblingElement();
+                continue;
+            }
+            unsigned char b1=(c2h__(hexid[0]))<<4 ;
 			unsigned char b2=c2h__(hexid[1]) ;
 			unsigned char id=b1+b2 ;			
 
@@ -121,7 +125,8 @@ void InstrumentBank::RestoreContent(TiXmlElement *element) {
 			} else {
 				it=(id<MAX_SAMPLEINSTRUMENT_COUNT)?IT_SAMPLE:IT_MIDI ;
 			} ;
-			if (id<MAX_INSTRUMENT_COUNT) {
+            // An unknown TYPE leaves the instrument as it is
+            if (id < MAX_INSTRUMENT_COUNT && it != IT_LAST) {
         I_Instrument *instr=instrument_[id] ;
 				if (instr->GetType()!=it) {
 					delete instr ;
@@ -140,6 +145,10 @@ void InstrumentBank::RestoreContent(TiXmlElement *element) {
 				while (param) {
 					const char *name=param->Attribute("NAME") ;
 					const char *value=param->Attribute("VALUE") ;
+                    if (!name || !value) {
+                        param = param->NextSiblingElement();
+                        continue;
+                    }
 
           // Convert old filter dist to newer filter mode
 

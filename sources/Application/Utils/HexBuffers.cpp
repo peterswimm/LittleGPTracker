@@ -67,17 +67,22 @@ void saveHexBuffer(TiXmlNode *parent,const char *nodeName,unsigned short *src,un
     saveHexBuffer(parent,nodeName,(unsigned char *)src,len*sizeof(short));
 }
 
-void restoreHexBuffer(TiXmlNode *node,unsigned char *destination) {
+// Writes at most size bytes to destination: the lengths come from the file.
+void restoreHexBuffer(TiXmlNode *node, unsigned char *destination,
+                      unsigned size) {
 
 	unsigned char *dst=destination ;
-	TiXmlElement *current=node->FirstChildElement() ;
+    unsigned char *end = destination + size;
+    TiXmlElement *current = node ? node->FirstChildElement() : NULL;
 	// all datas
 	while(current) {
 		int value ;
 		const char* s=current->Attribute("VALUE",&value) ;
 		if (s) {
-			int length ;
-			current->Attribute("LENGTH",&length) ;
+            int length = 0;
+            current->Attribute("LENGTH",&length) ;
+            if (length < 0 || length > end - dst)
+                length = end - dst;
 			unsigned char data=value ;
 			memset(dst,data,length) ;
 			dst+=length ;
@@ -86,14 +91,15 @@ void restoreHexBuffer(TiXmlNode *node,unsigned char *destination) {
 			if (textNode) {
 				textNode->ToText();
 				const char *buffer=textNode->Value() ;
-				for (unsigned int i=0;i<strlen(buffer)/2;i++) {
-					const char *src__=buffer+i*2 ;
+                for (unsigned int i = 0; i < strlen(buffer) / 2 && dst < end;
+                     i++) {
+                    const char *src__=buffer+i*2 ;
 					unsigned char b1=(c2h__(src__[0]))<<4 ;
 					unsigned char b2=c2h__(src__[1]) ;
 					*dst++=b1+b2 ;
 	//				char2hex(buffer+i*2,dst++) ;
-				} ;
-			}
+                };
+            }
 		}
 		current=current->NextSiblingElement() ;
 
