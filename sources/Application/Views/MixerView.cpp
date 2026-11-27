@@ -90,6 +90,11 @@ void MixerView::unMuteAll() {
 
 void MixerView::ProcessButtonMask(unsigned short mask, bool pressed) {
 
+    // Like the other views, act on presses only. On a release the window
+    // passes the buttons still held, which must not be replayed as a press.
+    if (!pressed)
+        return;
+
     if (clipboard_.active_) {
 		viewMode_=VM_SELECTION ;
 	} ;
