@@ -45,10 +45,10 @@ void W32File::Close() {
 W32Dir::W32Dir(const char *path):I_Dir(path) {
 } ;
 
-void W32Dir::GetContent(char *mask) {
+void W32Dir::GetContent(const char *mask) {
 
-	Empty() ;
-	WIN32_FIND_DATA findData ;
+    Empty();
+    WIN32_FIND_DATA findData ;
 	char fullPath[MAX_PATH + 1] ;
 	sprintf(fullPath,"%s/%s",path_,mask) ;
 	HANDLE handle=FindFirstFile(fullPath,&findData) ;
@@ -66,14 +66,13 @@ void W32Dir::GetContent(char *mask) {
 	FindClose(handle) ;
 };
 
-
 I_Dir *W32FileSystem::Open(const char *path) {
     return new W32Dir(path) ;
 } ;
 
-I_File *W32FileSystem::Open(const char *path,char *mode) {
-	char *rmode ;
-	switch(*mode) {
+I_File *W32FileSystem::Open(const char *path, const char *mode) {
+    char *rmode;
+    switch(*mode) {
         case 'r':
             rmode="rb" ;
             break ;
@@ -91,7 +90,7 @@ I_File *W32FileSystem::Open(const char *path,char *mode) {
 		wFile=new W32File(file) ;
 	}
 	return wFile ;
-} ;
+};
 
 FileType W32FileSystem::GetFileType(const char *path) {
 	DWORD attr=GetFileAttributes(path) ;

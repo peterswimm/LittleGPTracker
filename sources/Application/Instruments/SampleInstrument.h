@@ -137,6 +137,6 @@ private:
        Variable *irWet_;
 
        static bool useDirtyDownsampling_;
-       char *fxPresets[4];
+       const char *fxPresets[4];
 } ;
 #endif

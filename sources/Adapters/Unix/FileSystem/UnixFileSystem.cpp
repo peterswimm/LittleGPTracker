@@ -18,12 +18,12 @@
 UnixDir::UnixDir(const char *path):I_Dir(path) {
 } ;
 
-void UnixDir::GetContent(char *mask) {
+void UnixDir::GetContent(const char *mask) {
 
-	Empty() ;
+    Empty();
 
-	DIR* directory; 
-	struct dirent* entry; 
+    DIR *directory;
+    struct dirent* entry; 
 
 	directory = opendir (path_); 
 	if (directory == NULL) {
@@ -54,10 +54,8 @@ void UnixDir::GetContent(char *mask) {
 		} else {
   //          Trace::Dump("skipping %s",current) ;
         }
-	
-    } ;   
-	closedir (directory);
-	
+    };
+    closedir(directory);
 };
 
 void UnixDir::GetProjectContent() {
@@ -146,9 +144,9 @@ void UnixFile::Close() {
 UnixFileSystem::UnixFileSystem() {
 }
 
-I_File *UnixFileSystem::Open(const char *path,char *mode) {
-	char *rmode ;
-	switch(*mode) {
+I_File *UnixFileSystem::Open(const char *path, const char *mode) {
+    char *rmode;
+    switch(*mode) {
         case 'r':
             rmode=(char *)"rb" ;
             break ;
@@ -166,7 +164,7 @@ I_File *UnixFileSystem::Open(const char *path,char *mode) {
 		wFile=new UnixFile(file) ;
 	}
 	return wFile ;
-} ;
+};
 
 I_Dir *UnixFileSystem::Open(const char *path) {
     return new UnixDir(path) ;

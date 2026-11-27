@@ -61,7 +61,7 @@ std::string FxPrinter::parseCommand() {
     return command;
 }
 
-char *FxPrinter::GetNotification() { return notificationResult_; }
+const char *FxPrinter::GetNotification() { return notificationResult_; }
 
 bool FxPrinter::Run() {
     setParams();

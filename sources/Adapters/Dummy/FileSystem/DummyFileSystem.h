@@ -9,11 +9,11 @@
 
 class DummyFileSystem: public FileSystem {
 public:
-	virtual I_File *Open(const char *path,char *mode);
-	virtual I_Dir *Open(const char *path) ;
-	virtual FileType GetFileType(const char *path) ;	
-	virtual void MakeDir(const char *path) {} ;
-	virtual void Delete(const char *) {} ;
+  virtual I_File *Open(const char *path, const char *mode);
+  virtual I_Dir *Open(const char *path);
+  virtual FileType GetFileType(const char *path);
+  virtual void MakeDir(const char *path) {};
+  virtual void Delete(const char *) {};
 
 } ;
 #endif

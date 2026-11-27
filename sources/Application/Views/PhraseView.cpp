@@ -1521,7 +1521,7 @@ void PhraseView::OnPlayerUpdate(PlayerEventType eventType, unsigned int tick) {
                     unsigned char *chain =
                         viewData_->song_->data_ + i + 8 * songPos;
                     if (*chain == viewData_->currentChain_) {
-                        char *indicator = player->GetLiveIndicator(i);
+                        const char *indicator = player->GetLiveIndicator(i);
                         if (!commandSelectorModalActive_ ||
                             !CommandSelectorCommon::popupContainsPoint(
                                 anchor, pos._x, pos._y)) {

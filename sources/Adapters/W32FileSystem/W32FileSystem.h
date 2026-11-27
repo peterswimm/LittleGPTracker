@@ -24,15 +24,15 @@ class W32Dir: public I_Dir {
 public:
     W32Dir(const char *path) ;
 	virtual ~W32Dir() {} ;
-    virtual void GetContent(char *mask) ;
+    virtual void GetContent(const char *mask);
 } ;
 
 class W32FileSystem: public FileSystem {
 public:
-	virtual I_File *Open(const char *path,char *mode);
-	virtual I_Dir *Open(const char *path) ;
-	virtual FileType GetFileType(const char *path) ;
-	virtual Result MakeDir(const char *path) ;
-	virtual void Delete(const char *path) ;
+  virtual I_File *Open(const char *path, const char *mode);
+  virtual I_Dir *Open(const char *path);
+  virtual FileType GetFileType(const char *path);
+  virtual Result MakeDir(const char *path);
+  virtual void Delete(const char *path);
 } ;
 #endif
