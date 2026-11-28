@@ -787,6 +787,11 @@ void Player::updatePhrasePos(int pos, int channel) {
     timeToStart_[channel] = 1;
 
     uchar phrase = viewData_->currentPlayPhrase_[channel];
+    // 0xFF is "no phrase" (an empty chain step, or no chain), which has no
+    // row in the phrase arrays.
+    if (phrase == 0xFF) {
+        return;
+    }
 
     // Check both param colum 1 & 2
 
@@ -798,7 +803,7 @@ void Player::updatePhrasePos(int pos, int channel) {
 
     cc = viewData_->song_->phrase_->cmd2_[phrase * 16 + pos];
     if (cc == I_CMD_DLAY) {
-        ushort param=viewData_->song_->phrase_->param1_[phrase*16+pos];
+        ushort param = viewData_->song_->phrase_->param2_[phrase * 16 + pos];
         timeToStart_[channel] = (param & 0x0F) + 1;
     }
 }
