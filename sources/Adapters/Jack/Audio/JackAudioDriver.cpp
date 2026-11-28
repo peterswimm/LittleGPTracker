@@ -1,9 +1,9 @@
 #ifndef _NO_JACK_
 #include "JackAudioDriver.h"
+#include "Services/Midi/MidiService.h"
 #include "System/Console/Trace.h"
 #include "System/System/System.h"
 #include <unistd.h>
-//#include "Adapters/Jack/Midi/JackMidiService.h"
 
 JackAudioDriverThread::JackAudioDriverThread(JackAudioDriver *driver) {
 	semaphore_=0 ;
@@ -47,13 +47,15 @@ JackAudioDriver::~JackAudioDriver() {
 } ;
 
 // Runs on the driver thread each time the process callback wants audio. It
-// sends the events the other drivers send: the mixer renders on
-// ADET_BUFFERNEEDED and MIDI is flushed on ADET_DRIVERTICK. (A bare
-// NotifyObservers() passed them no event, and they dereferenced it.) Both
-// allocate, so neither is sent from the realtime callback.
+// does what the other drivers do per buffer: the mixer renders on
+// ADET_BUFFERNEEDED, and MIDI is queued for a flush (MidiService::Flush) and
+// flushed on ADET_DRIVERTICK. (A bare NotifyObservers() passed them no
+// event, and they dereferenced it.) All of it allocates, so none of it runs
+// in the realtime callback.
 void JackAudioDriver::OnBufferRequest() {
     OnNewBufferNeeded();
     onAudioBufferTick();
+    MidiService::GetInstance()->Flush();
 }
 
 int JackAudioDriver::GetSampleRate() {
@@ -184,9 +186,6 @@ void JackAudioDriver::ProcessCallback(jack_nframes_t frames) {
                 (jack_default_audio_sample_t *) 
                 jack_port_get_buffer (portR_, nframes);
 
-//	JackMidiService *jms=(JackMidiService *)MidiService::GetInstance() ;
-//	jms->OnNewFrame() ;
-
     if (!outL || !outR) {
         return;
     }
@@ -229,8 +228,6 @@ void JackAudioDriver::ProcessCallback(jack_nframes_t frames) {
             if (thread_) {
                 thread_->Notify();
             }
-            //			jms->SetFrameOffset(frames-nframes) ;
-            //			jms->Flush() ;
             SAFE_FREE(playing_);
             if (pool_[poolPlayPosition_].buffer_ == 0) {
                 // Underrun: the rest of this period is silence

@@ -318,7 +318,9 @@ RTMIDIFILES := \
 JACKFILES := \
 	JackAudioDriver.o \
 	JackClient.o \
-	JackAudio.o
+	JackAudio.o \
+	JackMidiDevice.o \
+	JackMidiService.o
 
 SDLAUDIOFILES := \
 					SDLAudioDriver.o \

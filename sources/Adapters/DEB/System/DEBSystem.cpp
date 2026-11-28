@@ -78,51 +78,54 @@ void DEBSystem::Boot(int argc,char **argv) {
 
 	TimerService::GetInstance()->Install(new SDLTimerService()) ;
 
-	// See if jack available
+    // See if jack available
 #ifndef _NO_JACK_
-	if (JackClient::GetInstance()->Init()) {
-		Trace::Debug("Audio","Found jack.. connecting to it") ;
-		AudioSettings hints ;  // Jack doesn't care of hints for now on
-		Audio::Install(new JackAudio(hints)) ;
-		// MidiService::Install(new JackMidiService()) ;
-		MidiService::Install(new RTMidiService()) ;
-	}
-	else
+    if (JackClient::GetInstance()->Init()) {
+        Trace::Debug("Audio", "Found jack.. connecting to it");
+        AudioSettings hints; // Jack doesn't care of hints for now on
+        Audio::Install(new JackAudio(hints));
+#ifdef JACKMIDI
+        // MIDI out through a JACK port instead of ALSA
+        MidiService::Install(new JackMidiService());
+#else
+        MidiService::Install(new RTMidiService());
 #endif
-	 {
-		Trace::Debug("Audio","Jack not found.. using default audio driver") ;
-		AudioSettings hints ;
-		hints.bufferSize_= 256 ;
-		hints.preBufferCount_=2 ;
-		Audio::Install(new RTAudioStub(hints)) ;
-		MidiService::Install(new RTMidiService()) ;
-	}
+    } else
+#endif
+    {
+        Trace::Debug("Audio", "Jack not found.. using default audio driver");
+        AudioSettings hints;
+        hints.bufferSize_ = 256;
+        hints.preBufferCount_ = 2;
+        Audio::Install(new RTAudioStub(hints));
+        MidiService::Install(new RTMidiService());
+    }
 
-	// Install Threads
+    // Install Threads
 
-	SysProcessFactory::Install(new UnixProcessFactory()) ;
+    SysProcessFactory::Install(new UnixProcessFactory());
 
-	if ( SDL_Init(SDL_INIT_VIDEO|SDL_INIT_TIMER) < 0 )   {
-		return;
-	}
-	SDL_EnableUNICODE(1);
-	SDL_ShowCursor(SDL_DISABLE);
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) < 0) {
+        return;
+    }
+    SDL_EnableUNICODE(1);
+    SDL_ShowCursor(SDL_DISABLE);
 
-	atexit(SDL_Quit);
+    atexit(SDL_Quit);
 
-	eventManager_=I_GUIWindowFactory::GetInstance()->GetEventManager() ;
-	eventManager_->Init() ;
+    eventManager_ = I_GUIWindowFactory::GetInstance()->GetEventManager();
+    eventManager_->Init();
 
-	eventManager_->MapAppButton("a",APP_BUTTON_A) ;
-	eventManager_->MapAppButton("s",APP_BUTTON_B) ;
-	eventManager_->MapAppButton("left",APP_BUTTON_LEFT) ;
-	eventManager_->MapAppButton("right",APP_BUTTON_RIGHT) ;
-	eventManager_->MapAppButton("up",APP_BUTTON_UP) ;
-	eventManager_->MapAppButton("down",APP_BUTTON_DOWN) ;
-	eventManager_->MapAppButton("right ctrl",APP_BUTTON_L) ;
-	eventManager_->MapAppButton("left ctrl",APP_BUTTON_R) ;
-	eventManager_->MapAppButton("space",APP_BUTTON_START) ;
-} ;
+    eventManager_->MapAppButton("a", APP_BUTTON_A);
+    eventManager_->MapAppButton("s", APP_BUTTON_B);
+    eventManager_->MapAppButton("left", APP_BUTTON_LEFT);
+    eventManager_->MapAppButton("right", APP_BUTTON_RIGHT);
+    eventManager_->MapAppButton("up", APP_BUTTON_UP);
+    eventManager_->MapAppButton("down", APP_BUTTON_DOWN);
+    eventManager_->MapAppButton("right ctrl", APP_BUTTON_L);
+    eventManager_->MapAppButton("left ctrl", APP_BUTTON_R);
+    eventManager_->MapAppButton("space", APP_BUTTON_START);
+};
 
 void DEBSystem::Shutdown() {
 } ;
