@@ -15,13 +15,13 @@ int jack_callback(jack_nframes_t nframes, void *arg) {
 }
 
 // Called on a JACK thread when the server goes away. It must not block, so
-// it only sets a flag and logs; the client is closed later, in the destructor.
+// it only sets a flag; the client is closed later, in the destructor.
 static void jack_shutdown(void *arg) {
     JackClient *client = (JackClient *)arg;
     client->OnShutdown();
 }
 
-JackClient::JackClient() : client_(0), shutdown_(false) {};
+JackClient::JackClient() : client_(0), shutdown_(false), processorCount_(0) {}
 
 JackClient::~JackClient() {
     Trace::Debug("[J]: close driver");
@@ -53,8 +53,9 @@ bool JackClient::Init() {
 };
 
 void JackClient::OnShutdown() {
+    // JACK runs this like a signal handler, so it only sets the flag; the
+    // UI thread reports it (see Audio::GetFailure)
     shutdown_ = true;
-    Trace::Debug("[J]: JACK server shut down, audio stopped");
 };
 
 bool JackClient::IsShutdown() { return shutdown_; };
@@ -68,11 +69,24 @@ jack_client_t *JackClient::GetClient() {
 	return client_ ;
 } ;
 
+void JackClient::Insert(JackProcessor *processor) {
+    if (processorCount_ == MAX_JACK_PROCESSORS) {
+        Trace::Error("[J]: too many JACK processors");
+        return;
+    }
+    // fill the slot before publishing it to the process callback
+    processors_[processorCount_] = processor;
+    __sync_synchronize();
+    processorCount_ = processorCount_ + 1;
+}
+
+void JackClient::Insert(JackProcessor &processor) { Insert(&processor); }
+
 void JackClient::ProcessCallback(jack_nframes_t nframes) {
-     IteratorPtr<JackProcessor>it(GetIterator()) ;
-     for (it->Begin();!it->IsDone();it->Next()) {
-         JackProcessor &current=it->CurrentItem() ;
-         current.ProcessCallback(nframes) ;
-     }
-} ;
+    int count = processorCount_;
+    __sync_synchronize();
+    for (int i = 0; i < count; i++) {
+        processors_[i]->ProcessCallback(nframes);
+    }
+}
 #endif

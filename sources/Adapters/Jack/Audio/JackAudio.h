@@ -13,6 +13,7 @@ public:
 	virtual void Init() ;
 	virtual void Close() ;
     virtual int GetSampleRate();
+    virtual const char *GetFailure();
 
   private:
     JackAudioDriver *drv_;

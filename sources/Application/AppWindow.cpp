@@ -11,6 +11,7 @@
 #include "Application/Views/ModalDialogs/SelectProjectDialog.h"
 #include "Foundation/Variables/WatchedVariable.h"
 #include "Player/Player.h"
+#include "Services/Audio/Audio.h"
 #include "Services/Midi/MidiService.h"
 #include "System/Console/Trace.h"
 #include "UIFramework/Interfaces/I_GUIWindowFactory.h"
@@ -544,6 +545,8 @@ void AppWindow::onUpdate() {
         return;
     }
 
+    checkAudioFailure();
+
     // Call AnimationUpdate periodically (~10-25Hz depending on frame rate)
     static unsigned int animTick = 0;
     if ((animTick++ % 2) == 0) {  // every 2nd call, roughly 25Hz at 50Hz main loop
@@ -552,6 +555,26 @@ void AppWindow::onUpdate() {
         }
     }
     Flush();
+}
+
+// Audio output can stop working on its own (the JACK server going away): stop
+// the player and tell the user, once. Runs on the UI thread.
+void AppWindow::checkAudioFailure() {
+    static bool reported = false;
+    Audio *audio = Audio::GetInstance();
+    const char *failure = audio ? audio->GetFailure() : 0;
+    if (reported || !failure) {
+        return;
+    }
+    reported = true;
+    Trace::Error("Audio stopped: %s", failure);
+    Player *player = Player::GetInstance();
+    if (player->IsRunning()) {
+        player->Stop();
+    }
+    if (_currentView) {
+        _currentView->SetNotification(failure);
+    }
 }
 
 void AppWindow::LayoutChildren() {};

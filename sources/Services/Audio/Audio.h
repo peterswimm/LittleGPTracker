@@ -16,6 +16,9 @@ class Audio : public T_Factory<Audio>, public T_SimpleList<AudioOut> {
     virtual int GetSampleRate() { return 44100; };
     virtual int GetMixerVolume() { return 100; };
     virtual void SetMixerVolume(int volume) {};
+    // Why audio output stopped working (e.g. the JACK server went away), or
+    // 0 if it works. Read on the UI thread.
+    virtual const char *GetFailure() { return 0; };
 
     const char *GetAudioAPI();
     const char *GetAudioDevice();
