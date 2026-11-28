@@ -4,15 +4,14 @@
 
 #include "Services/Midi/MidiService.h"
 
-class JackMidiService: public MidiService {
-public:
-	JackMidiService() ;
-	~JackMidiService() ;
-	void SetFrameOffset(int offset) ;
-	void OnNewFrame() ;
-protected:
-	virtual void buildDriverList() ;
+// One JACK MIDI output port, "midiout". There is no JACK MIDI input.
+class JackMidiService : public MidiService {
+  public:
+    JackMidiService();
+    ~JackMidiService();
 
-} ;
+  protected:
+    virtual void buildDriverList();
+};
 
 #endif
