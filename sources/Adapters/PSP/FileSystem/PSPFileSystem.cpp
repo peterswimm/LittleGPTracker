@@ -47,8 +47,8 @@ void PSPFile::Printf(const char *fmt, ...) {
     va_list args;
     va_start(args,fmt);
 
-    vsprintf(buffer,fmt,args );
-	Write(buffer,strlen(buffer),1) ;	
+    vsnprintf(buffer, sizeof(buffer), fmt, args);
+    Write(buffer, strlen(buffer), 1);
     va_end(args);
 }
 
