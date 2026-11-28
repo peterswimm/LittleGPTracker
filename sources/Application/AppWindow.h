@@ -60,6 +60,8 @@ class AppWindow : public GUIWindow, I_Observer, Status {
 
     void onQuitApp();
 
+    void checkAudioFailure();
+
   private:
     View *_currentView;
     ViewData *_viewData;

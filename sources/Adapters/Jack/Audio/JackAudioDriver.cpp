@@ -2,6 +2,7 @@
 #include "JackAudioDriver.h"
 #include "System/Console/Trace.h"
 #include "System/System/System.h"
+#include <unistd.h>
 //#include "Adapters/Jack/Midi/JackMidiService.h"
 
 JackAudioDriverThread::JackAudioDriverThread(JackAudioDriver *driver) {
@@ -11,13 +12,12 @@ JackAudioDriverThread::JackAudioDriverThread(JackAudioDriver *driver) {
 
 bool JackAudioDriverThread::Execute() {
 	semaphore_=SysSemaphore::Create(0,4) ;
-	while (!shouldTerminate()) {
-		semaphore_->Wait() ;
-		driver_->SetChanged() ;
-		driver_->NotifyObservers() ;
-	} ;
-	delete semaphore_ ;
-	return true ;
+    while (!shouldTerminate()) {
+        semaphore_->Wait();
+        driver_->OnBufferRequest();
+    };
+    delete semaphore_;
+    return true;
 } ;
 
 void JackAudioDriverThread::Notify() {
@@ -33,15 +33,28 @@ JackAudioDriver::JackAudioDriver(jack_client_t *client,AudioSettings &settings):
 	portR_ = jack_port_register (client, "mixR",JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, 0);
 	thread_=0 ;
     running_ = false;
-    tempBuffer_ = 0;
+    ready_ = false;
+    playing_ = 0;
     current_ = 0;
     available_ = 0;
     startTime_ = 0;
     restart_ = false;
+    stopRequest_ = false;
+    stopAck_ = false;
 } ;
 
 JackAudioDriver::~JackAudioDriver() {
 } ;
+
+// Runs on the driver thread each time the process callback wants audio. It
+// sends the events the other drivers send: the mixer renders on
+// ADET_BUFFERNEEDED and MIDI is flushed on ADET_DRIVERTICK. (A bare
+// NotifyObservers() passed them no event, and they dereferenced it.) Both
+// allocate, so neither is sent from the realtime callback.
+void JackAudioDriver::OnBufferRequest() {
+    OnNewBufferNeeded();
+    onAudioBufferTick();
+}
 
 int JackAudioDriver::GetSampleRate() {
     // the engine renders at the server's rate (48000 on most JACK2 and
@@ -58,16 +71,8 @@ bool JackAudioDriver::InitDriver() {
         return false;
     }
 
-    // The process callback runs on JACK's realtime thread, so the buffer it
-    // plays from is allocated here rather than there
-    if (!tempBuffer_) {
-        tempBuffer_ = (short *)SYS_MALLOC(SOUND_BUFFER_MAX);
-        if (!tempBuffer_) {
-            Trace::Error("[J]: cannot allocate the audio buffer");
-            return false;
-        }
-    }
     restart_ = true;
+    ready_ = true;
 
     // Get output port and connect straight to the default system output
 
@@ -118,7 +123,8 @@ void JackAudioDriver::CloseDriver() {
     thread_ = 0;
     // JackAudio::Close deactivates the client first, so the process callback
     // no longer reads the buffer
-    SAFE_FREE(tempBuffer_);
+    ready_ = false;
+    SAFE_FREE(playing_);
     current_ = 0;
     available_ = 0;
 } ;
@@ -128,13 +134,28 @@ bool JackAudioDriver::StartDriver() {
     // the process callback may be running: it drops what it was playing at
     // its next call, so only that thread writes current_ and available_
     restart_ = true;
+    __sync_synchronize();
+    stopRequest_ = false;
     startTime_ = jack_get_time();
     return true;
 } ;
 
-// The buffer is kept: the process callback keeps running while the driver is
-// stopped, and it plays silence once AudioDriver::Stop clears hasData_
-void JackAudioDriver::StopDriver() {};
+// AudioDriver::Start frees the queued buffers right after this returns, so
+// wait until the process callback has stopped using them. The callback
+// acknowledges at its next call, so the call that was using the pool has
+// returned. The wait is bounded: no call comes when the client is inactive
+// or the server has gone.
+void JackAudioDriver::StopDriver() {
+    stopAck_ = false;
+    __sync_synchronize();
+    stopRequest_ = true;
+    for (int i = 0; i < 200 && !stopAck_; i++) {
+        usleep(1000);
+    }
+    if (!stopAck_) {
+        Trace::Debug("[J]: stop not acknowledged");
+    }
+}
 
 void JackAudioDriver::dumpBuffer(jack_default_audio_sample_t *dstL,jack_default_audio_sample_t *dstR,short *src,int frameCount) {
 
@@ -171,14 +192,28 @@ void JackAudioDriver::ProcessCallback(jack_nframes_t frames) {
     }
 
     // not initialised yet, or already closed
-    if (!tempBuffer_) {
+    if (!ready_) {
         SYS_MEMSET(outL, 0, nframes * sizeof(jack_default_audio_sample_t));
         SYS_MEMSET(outR, 0, nframes * sizeof(jack_default_audio_sample_t));
         return;
     }
+    if (stopRequest_) {
+        // stopped: play silence and leave the pool to AudioDriver::Start
+        SAFE_FREE(playing_);
+        current_ = 0;
+        available_ = 0;
+        SYS_MEMSET(outL, 0, nframes * sizeof(jack_default_audio_sample_t));
+        SYS_MEMSET(outR, 0, nframes * sizeof(jack_default_audio_sample_t));
+        __sync_synchronize();
+        stopAck_ = true;
+        return;
+    }
     if (restart_) {
+        // AudioDriver::Start emptied the pool; what was being played is
+        // dropped here, on the only thread that uses it
         restart_ = false;
-        current_ = tempBuffer_;
+        SAFE_FREE(playing_);
+        current_ = 0;
         available_ = 0;
     }
 
@@ -187,53 +222,42 @@ void JackAudioDriver::ProcessCallback(jack_nframes_t frames) {
         SYS_MEMSET(outR, 0, nframes * sizeof(jack_default_audio_sample_t));
         if (thread_)
             thread_->Notify();
-    } else {
-        while (nframes > 0) {
-
-            int read = 0;
-
-            if (!available_) {
-                if (thread_) {
-                    thread_->Notify();
-                }
-                //			jms->SetFrameOffset(frames-nframes) ;
-                //			jms->Flush() ;
-                if (pool_[poolPlayPosition_].buffer_ != 0) {
-                    // tempBuffer_ holds SOUND_BUFFER_MAX bytes
-                    int size = pool_[poolPlayPosition_].size_;
-                    if (size > SOUND_BUFFER_MAX) {
-                        size = SOUND_BUFFER_MAX;
-                    }
-                    available_ = size / 2 / sizeof(short);
-                    SYS_MEMCPY(tempBuffer_, pool_[poolPlayPosition_].buffer_,
-                               size);
-                    SYS_FREE(pool_[poolPlayPosition_].buffer_);
-                    pool_[poolPlayPosition_].buffer_ = 0;
-                    poolPlayPosition_ =
-                        (poolPlayPosition_ + 1) % SOUND_BUFFER_COUNT;
-                    current_ = tempBuffer_;
-                } else {
-                    // Underrun: play silence. A stereo frame is two shorts,
-                    // and a period longer than tempBuffer_ is played in
-                    // several chunks by this loop.
-                    jack_nframes_t silent = nframes;
-                    if (silent > SOUND_BUFFER_MAX / (2 * sizeof(short))) {
-                        silent = SOUND_BUFFER_MAX / (2 * sizeof(short));
-                    }
-                    SYS_MEMSET(tempBuffer_, 0, silent * 2 * sizeof(short));
-                    available_ = silent;
-                    current_ = tempBuffer_;
-                    Trace::Debug("[J]: Underrun detected");
-                }
+        return;
+    }
+    while (nframes > 0) {
+        if (!available_) {
+            if (thread_) {
+                thread_->Notify();
             }
-            read = (available_ > nframes) ? nframes : available_;
-            dumpBuffer(outL, outR, current_, read);
-            available_ -= read;
-            outL += read;
-            outR += read;
-            nframes -= read;
-            current_ += read * 2;
+            //			jms->SetFrameOffset(frames-nframes) ;
+            //			jms->Flush() ;
+            SAFE_FREE(playing_);
+            if (pool_[poolPlayPosition_].buffer_ == 0) {
+                // Underrun: the rest of this period is silence
+                SYS_MEMSET(outL, 0,
+                           nframes * sizeof(jack_default_audio_sample_t));
+                SYS_MEMSET(outR, 0,
+                           nframes * sizeof(jack_default_audio_sample_t));
+                Trace::Debug("[J]: Underrun detected");
+                return;
+            }
+            // Play the queued buffer where it is, whatever its size (a slice
+            // can be bigger than SOUND_BUFFER_MAX at high rates and slow
+            // tempos), and free it once it has been played
+            playing_ = (short *)pool_[poolPlayPosition_].buffer_;
+            available_ = pool_[poolPlayPosition_].size_ / 2 / sizeof(short);
+            pool_[poolPlayPosition_].buffer_ = 0;
+            poolPlayPosition_ = (poolPlayPosition_ + 1) % SOUND_BUFFER_COUNT;
+            current_ = playing_;
+            continue;
         }
+        jack_nframes_t read = (available_ > nframes) ? nframes : available_;
+        dumpBuffer(outL, outR, current_, read);
+        available_ -= read;
+        outL += read;
+        outR += read;
+        nframes -= read;
+        current_ += read * 2;
     }
 } ;
 #endif

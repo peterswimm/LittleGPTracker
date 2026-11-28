@@ -57,6 +57,13 @@ void JackAudio::Close() {
      }
 } ;
 
+const char *JackAudio::GetFailure() {
+    // no runtime fallback to another driver: the app has to be restarted
+    return JackClient::GetInstance()->IsShutdown()
+               ? "JACK server stopped, restart lgpt"
+               : 0;
+}
+
 int JackAudio::GetSampleRate() {
     // the engine asks the Audio service, so pass on the server's rate
     return drv_ ? drv_->GetSampleRate() : Audio::GetSampleRate();
